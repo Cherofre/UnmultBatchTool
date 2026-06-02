@@ -398,98 +398,170 @@ class UnmultApp:
             background=[("active", colors["panel_bg"])],
             foreground=[("disabled", colors["muted"])],
         )
+        self.style.configure("Header.TFrame", background=colors["app_bg"])
+        self.style.configure("Sidebar.TFrame", background=colors["panel_bg"])
+        self.style.configure(
+            "Preview.TFrame",
+            background=colors["surface"],
+            bordercolor=colors["border"],
+            relief="solid",
+        )
+        self.style.configure(
+            "Preview.TLabel",
+            background=colors["surface"],
+            foreground=colors["muted"],
+            font=fonts["base"],
+        )
+        self.style.configure(
+            "Status.TLabel",
+            background=colors["panel_bg"],
+            foreground=colors["muted"],
+            font=fonts["small"],
+            padding=(12, 7),
+        )
 
     def _build_ui(self) -> None:
-        tk = self.tk
-        ttk = self.ttk
         root = self.root
 
-        root.columnconfigure(0, weight=0)
-        root.columnconfigure(1, weight=1)
-        root.rowconfigure(0, weight=1)
+        root.columnconfigure(0, weight=1)
+        root.rowconfigure(1, weight=1)
 
-        side = ttk.Frame(root, padding=10)
-        side.grid(row=0, column=0, sticky="nsew")
+        self._build_header(root)
+
+        content = self.ttk.Frame(root, style="Header.TFrame")
+        content.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 10))
+        content.columnconfigure(1, weight=1)
+        content.rowconfigure(0, weight=1)
+
+        side = self.ttk.Frame(content, style="Sidebar.TFrame", padding=10, width=338)
+        side.grid(row=0, column=0, sticky="nsw", padx=(0, 12))
+        side.grid_propagate(False)
         side.columnconfigure(0, weight=1)
-        side.rowconfigure(4, weight=1)
+        side.rowconfigure(3, weight=1)
+        self.sidebar = side
 
-        actions = ttk.Frame(side)
-        actions.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        actions.columnconfigure(0, weight=1)
-        actions.columnconfigure(1, weight=1)
-        actions.columnconfigure(2, weight=1)
+        self._build_import_section(side, row=0)
+        self._build_export_section(side, row=1)
+        self._build_settings_section(side, row=2)
+        self._build_file_list_section(side, row=3)
+        self._build_preview_area(content)
+        self._build_status_bar(root)
 
-        ttk.Button(actions, text="添加图片", command=self.add_files).grid(
+    def _build_header(self, parent) -> None:
+        ttk = self.ttk
+        header = ttk.Frame(parent, style="Header.TFrame", padding=(14, 10, 14, 8))
+        header.grid(row=0, column=0, sticky="ew")
+        header.columnconfigure(0, weight=1)
+        self.header = header
+
+        ttk.Label(header, text="Unmult 去黑批处理工具", style="Title.TLabel").grid(
+            row=0,
+            column=0,
+            sticky="w",
+        )
+        ttk.Label(
+            header,
+            text="批量移除黑底素材，生成透明 PNG",
+            style="Muted.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(2, 0))
+
+    def _build_import_section(self, parent, row: int) -> None:
+        ttk = self.ttk
+        self.import_section = ttk.LabelFrame(parent, text="导入素材", padding=8)
+        self.import_section.grid(row=row, column=0, sticky="ew", pady=(0, 8))
+        self.import_section.columnconfigure(0, weight=1)
+        self.import_section.columnconfigure(1, weight=1)
+        self.import_section.columnconfigure(2, weight=1)
+
+        ttk.Button(self.import_section, text="添加图片", command=self.add_files).grid(
             row=0,
             column=0,
             sticky="ew",
             padx=(0, 4),
         )
-        ttk.Button(actions, text="添加文件夹", command=self.add_folder).grid(
+        ttk.Button(self.import_section, text="添加文件夹", command=self.add_folder).grid(
             row=0,
             column=1,
             sticky="ew",
             padx=4,
         )
-        ttk.Button(actions, text="清空", command=self.clear_files).grid(
+        ttk.Button(self.import_section, text="清空", command=self.clear_files).grid(
             row=0,
             column=2,
             sticky="ew",
             padx=(4, 0),
         )
+        ttk.Checkbutton(
+            self.import_section,
+            text="递归读取子文件夹",
+            variable=self.recursive,
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
 
-        ttk.Checkbutton(side, text="递归读取子文件夹", variable=self.recursive).grid(
-            row=1,
-            column=0,
-            sticky="w",
-            pady=(0, 6),
-        )
+    def _build_export_section(self, parent, row: int) -> None:
+        ttk = self.ttk
+        self.export_section = ttk.LabelFrame(parent, text="批量导出", padding=8)
+        self.export_section.grid(row=row, column=0, sticky="ew", pady=(0, 8))
+        self.export_section.columnconfigure(0, weight=1)
 
-        output = ttk.LabelFrame(side, text="批量导出", padding=8)
-        output.grid(row=2, column=0, sticky="ew", pady=(0, 8))
-        output.columnconfigure(0, weight=1)
-        ttk.Entry(output, textvariable=self.output_dir).grid(
+        ttk.Entry(self.export_section, textvariable=self.output_dir).grid(
             row=0,
             column=0,
             sticky="ew",
             pady=(0, 6),
         )
-        ttk.Button(output, text="选择输出目录", command=self.pick_output_dir).grid(
-            row=1,
+        ttk.Button(
+            self.export_section,
+            text="选择输出目录",
+            command=self.pick_output_dir,
+        ).grid(row=1, column=0, sticky="ew", pady=(0, 6))
+        ttk.Label(self.export_section, text="文件后缀").grid(
+            row=2,
             column=0,
-            sticky="ew",
-            pady=(0, 6),
+            sticky="w",
         )
-        ttk.Label(output, text="文件后缀").grid(row=2, column=0, sticky="w")
-        ttk.Entry(output, textvariable=self.suffix).grid(
+        ttk.Entry(self.export_section, textvariable=self.suffix).grid(
             row=3,
             column=0,
             sticky="ew",
             pady=(0, 6),
         )
-        ttk.Checkbutton(output, text="覆盖同名 PNG", variable=self.overwrite).grid(
-            row=4,
+        ttk.Checkbutton(
+            self.export_section,
+            text="覆盖同名 PNG",
+            variable=self.overwrite,
+        ).grid(row=4, column=0, sticky="w", pady=(0, 6))
+        ttk.Button(
+            self.export_section,
+            text="开始批量处理",
+            command=self.start_batch,
+            style="Accent.TButton",
+        ).grid(row=5, column=0, sticky="ew")
+
+    def _build_settings_section(self, parent, row: int) -> None:
+        ttk = self.ttk
+        self.settings_section = ttk.LabelFrame(parent, text="去黑参数", padding=8)
+        self.settings_section.grid(row=row, column=0, sticky="ew", pady=(0, 8))
+        self.settings_section.columnconfigure(1, weight=1)
+
+        self._add_slider(self.settings_section, "黑场", self.black_point, 0, 240, 0)
+        self._add_slider(self.settings_section, "白场", self.white_point, 16, 255, 1)
+        self._add_slider(
+            self.settings_section,
+            "Alpha Gamma",
+            self.gamma,
+            0.25,
+            3,
+            2,
+        )
+
+        ttk.Label(self.settings_section, text="亮度算法").grid(
+            row=3,
             column=0,
             sticky="w",
-            pady=(0, 6),
+            pady=3,
         )
-        ttk.Button(output, text="开始批量处理", command=self.start_batch).grid(
-            row=5,
-            column=0,
-            sticky="ew",
-        )
-
-        settings = ttk.LabelFrame(side, text="去黑参数", padding=8)
-        settings.grid(row=3, column=0, sticky="ew", pady=(0, 8))
-        settings.columnconfigure(1, weight=1)
-
-        self._add_slider(settings, "黑场", self.black_point, 0, 240, 0)
-        self._add_slider(settings, "白场", self.white_point, 16, 255, 1)
-        self._add_slider(settings, "Alpha Gamma", self.gamma, 0.25, 3, 2)
-
-        ttk.Label(settings, text="亮度算法").grid(row=3, column=0, sticky="w", pady=3)
         mode_box = ttk.Combobox(
-            settings,
+            self.settings_section,
             textvariable=self.mode,
             state="readonly",
             values=("max", "luma", "average"),
@@ -498,9 +570,14 @@ class UnmultApp:
         mode_box.grid(row=3, column=1, sticky="ew", pady=3)
         mode_box.bind("<<ComboboxSelected>>", lambda _event: self.schedule_preview_update())
 
-        ttk.Label(settings, text="预览底色").grid(row=4, column=0, sticky="w", pady=3)
+        ttk.Label(self.settings_section, text="预览底色").grid(
+            row=4,
+            column=0,
+            sticky="w",
+            pady=3,
+        )
         bg_box = ttk.Combobox(
-            settings,
+            self.settings_section,
             textvariable=self.preview_bg,
             state="readonly",
             values=("checker", "black", "white"),
@@ -510,19 +587,37 @@ class UnmultApp:
         bg_box.bind("<<ComboboxSelected>>", lambda _event: self.schedule_preview_update())
 
         ttk.Checkbutton(
-            settings,
+            self.settings_section,
             text="输出保持预乘 RGB",
             variable=self.premultiplied_output,
             command=self.schedule_preview_update,
         ).grid(row=5, column=0, columnspan=2, sticky="w", pady=(6, 0))
 
-        list_frame = ttk.LabelFrame(side, text="图片列表", padding=8)
-        list_frame.grid(row=4, column=0, sticky="nsew")
-        list_frame.columnconfigure(0, weight=1)
-        list_frame.rowconfigure(0, weight=1)
+    def _build_file_list_section(self, parent, row: int) -> None:
+        tk = self.tk
+        ttk = self.ttk
+        colors = UI_COLORS
+        self.file_list_section = ttk.LabelFrame(parent, text="图片列表", padding=8)
+        self.file_list_section.grid(row=row, column=0, sticky="nsew")
+        self.file_list_section.columnconfigure(0, weight=1)
+        self.file_list_section.rowconfigure(0, weight=1)
 
-        self.file_list = tk.Listbox(list_frame, width=34, height=7)
-        list_scrollbar = ttk.Scrollbar(list_frame, orient="vertical")
+        self.file_list = tk.Listbox(
+            self.file_list_section,
+            width=34,
+            height=7,
+            bg=colors["panel_bg"],
+            fg=colors["text"],
+            selectbackground=colors["selection"],
+            selectforeground=colors["text"],
+            activestyle="none",
+            highlightthickness=1,
+            highlightcolor=colors["accent"],
+            highlightbackground=colors["border"],
+            relief="flat",
+            borderwidth=0,
+        )
+        list_scrollbar = ttk.Scrollbar(self.file_list_section, orient="vertical")
         self.file_list.configure(yscrollcommand=list_scrollbar.set)
         list_scrollbar.configure(command=self.file_list.yview)
         self.file_list.grid(row=0, column=0, sticky="nsew")
@@ -532,24 +627,34 @@ class UnmultApp:
             lambda _event: self.load_selected_preview(),
         )
 
-        main = ttk.Frame(root, padding=(0, 10, 10, 10))
+    def _build_preview_area(self, parent) -> None:
+        ttk = self.ttk
+        main = ttk.Frame(parent, style="Preview.TFrame", padding=14)
         main.grid(row=0, column=1, sticky="nsew")
         main.columnconfigure(0, weight=1)
         main.rowconfigure(0, weight=1)
+        self.preview_frame = main
 
-        self.preview_label = ttk.Label(main, anchor="center")
+        self.preview_label = ttk.Label(
+            main,
+            text="拖入图片或从左侧列表选择素材",
+            anchor="center",
+            style="Preview.TLabel",
+        )
         self.preview_label.grid(row=0, column=0, sticky="nsew")
         self.preview_label.bind(
             "<Configure>",
             lambda _event: self.schedule_preview_update(delay=180),
         )
 
-        ttk.Label(main, textvariable=self.status, anchor="w").grid(
-            row=1,
-            column=0,
-            sticky="ew",
-            pady=(10, 0),
+    def _build_status_bar(self, parent) -> None:
+        self.status_bar = self.ttk.Label(
+            parent,
+            textvariable=self.status,
+            anchor="w",
+            style="Status.TLabel",
         )
+        self.status_bar.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
 
     def _add_slider(
         self,

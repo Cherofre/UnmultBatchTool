@@ -34,6 +34,19 @@ class UnmultToolTests(unittest.TestCase):
         finally:
             app.root.destroy()
 
+    def test_export_section_is_above_settings_in_sidebar(self):
+        app = UnmultApp()
+        try:
+            app.root.update_idletasks()
+            export_row = int(app.export_section.grid_info()["row"])
+            settings_row = int(app.settings_section.grid_info()["row"])
+            list_row = int(app.file_list_section.grid_info()["row"])
+
+            self.assertLess(export_row, settings_row)
+            self.assertLess(settings_row, list_row)
+        finally:
+            app.root.destroy()
+
 
 if __name__ == "__main__":
     unittest.main()
