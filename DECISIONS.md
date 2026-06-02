@@ -39,3 +39,11 @@ Status: active
 Decision: Use Canvas-drawn rounded buttons for the main source UI instead of standard `ttk.Button` widgets.
 
 Reason: The user feedback showed the first restyle still looked too close to old Windows controls; Canvas buttons give more control over flat backgrounds, borders, hover states, and the primary action style while staying in pure Tkinter.
+
+### 2026-06-02: Follow red-box reference layout
+
+Status: active
+
+Decision: Use a toolbar-first layout without a large in-window title; keep upload, file list, and adjustment parameters on the left; place preview controls above the preview and export settings below it.
+
+Reason: The user clarified that the generated/reference UI placed key controls around the preview, and the prior left-column-only layout clipped lower controls in the default window.

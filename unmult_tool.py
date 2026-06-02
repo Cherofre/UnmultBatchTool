@@ -249,8 +249,8 @@ class UnmultApp:
 
         self.root = TkinterDnD.Tk() if TkinterDnD is not None else tk.Tk()
         self.root.title("Unmult 去黑批处理工具")
-        self.root.geometry("1040x680")
-        self.root.minsize(860, 560)
+        self.root.geometry("1280x760")
+        self.root.minsize(1120, 680)
         self.style = ttk.Style(self.root)
         self._configure_style()
 
@@ -258,6 +258,7 @@ class UnmultApp:
         self.preview_source: Image.Image | None = None
         self.preview_photo: ImageTk.PhotoImage | None = None
         self.preview_job: str | None = None
+        self.worker_poll_job: str | None = None
         self.worker_queue: queue.Queue[tuple[str, str]] = queue.Queue()
 
         self.black_point = tk.IntVar(value=0)
@@ -270,6 +271,7 @@ class UnmultApp:
         self.recursive = tk.BooleanVar(value=False)
         self.overwrite = tk.BooleanVar(value=False)
         self.premultiplied_output = tk.BooleanVar(value=False)
+        self.preview_position = tk.StringVar(value="0 / 0")
         self.status = tk.StringVar(value="请选择图片或文件夹。")
 
         self._build_ui()
@@ -409,6 +411,20 @@ class UnmultApp:
             background=[("active", colors["card_bg"])],
             foreground=[("disabled", colors["muted"])],
         )
+        self.style.configure(
+            "Vertical.TScrollbar",
+            background=colors["surface"],
+            troughcolor=colors["card_bg"],
+            bordercolor=colors["border_soft"],
+            arrowcolor=colors["muted"],
+            relief="flat",
+            width=12,
+        )
+        self.style.map(
+            "Vertical.TScrollbar",
+            background=[("active", colors["surface_hover"])],
+            arrowcolor=[("active", colors["text"])],
+        )
         self.style.configure("Header.TFrame", background=colors["header_bg"])
         self.style.configure("Sidebar.TFrame", background=colors["panel_bg"])
         self.style.configure(
@@ -437,26 +453,83 @@ class UnmultApp:
         root.columnconfigure(0, weight=1)
         root.rowconfigure(1, weight=1)
 
-        self._build_header(root)
+        self._build_toolbar(root)
 
         content = self.ttk.Frame(root, style="TFrame")
         content.grid(row=1, column=0, sticky="nsew", padx=12, pady=(12, 10))
         content.columnconfigure(1, weight=1)
         content.rowconfigure(0, weight=1)
 
-        side = self.ttk.Frame(content, style="Sidebar.TFrame", padding=10, width=340)
+        side = self.ttk.Frame(content, style="Sidebar.TFrame", padding=10, width=390)
         side.grid(row=0, column=0, sticky="nsw", padx=(0, 12))
         side.grid_propagate(False)
         side.columnconfigure(0, weight=1)
-        side.rowconfigure(3, weight=1)
+        side.rowconfigure(1, weight=1)
         self.sidebar = side
 
         self._build_import_section(side, row=0)
-        self._build_export_section(side, row=1)
+        self._build_file_list_section(side, row=1)
         self._build_settings_section(side, row=2)
-        self._build_file_list_section(side, row=3)
-        self._build_preview_area(content)
+
+        right = self.ttk.Frame(content, style="TFrame")
+        right.grid(row=0, column=1, sticky="nsew")
+        right.columnconfigure(0, weight=1)
+        right.rowconfigure(0, weight=1)
+        self.preview_column = right
+
+        self._build_preview_area(right, row=0)
+        self._build_export_section(right, row=1)
         self._build_status_bar(root)
+
+    def _build_toolbar(self, parent) -> None:
+        tk = self.tk
+        colors = UI_COLORS
+        toolbar = tk.Frame(
+            parent,
+            bg=colors["card_bg"],
+            highlightthickness=1,
+            highlightbackground=colors["border_soft"],
+            bd=0,
+            padx=12,
+            pady=8,
+        )
+        toolbar.grid(row=0, column=0, sticky="ew")
+        toolbar.columnconfigure(8, weight=1)
+        self.toolbar = toolbar
+
+        self._create_button(toolbar, "添加文件", self.add_files, width=98).grid(
+            row=0,
+            column=0,
+            padx=(0, 8),
+        )
+        self._create_button(toolbar, "添加文件夹", self.add_folder, width=112).grid(
+            row=0,
+            column=1,
+            padx=(0, 8),
+        )
+        self._create_button(toolbar, "清空列表", self.clear_files, width=98).grid(
+            row=0,
+            column=2,
+            padx=(0, 12),
+        )
+        self._toolbar_separator(toolbar).grid(row=0, column=3, sticky="ns", padx=(0, 12))
+        self._create_button(toolbar, "重置参数", self.reset_settings, width=98).grid(
+            row=0,
+            column=4,
+            padx=(0, 8),
+        )
+        self._create_button(toolbar, "使用说明", self.show_help, width=98).grid(
+            row=0,
+            column=9,
+            padx=(0, 8),
+        )
+        self._create_button(toolbar, "关于", self.show_about, width=70).grid(
+            row=0,
+            column=10,
+        )
+
+    def _toolbar_separator(self, parent):
+        return self.tk.Frame(parent, width=1, bg=UI_COLORS["border_soft"], bd=0)
 
     def _build_header(self, parent) -> None:
         tk = self.tk
@@ -554,16 +627,29 @@ class UnmultApp:
             "border": colors["border"],
         }
 
-    def _create_button(self, parent, text: str, command, *, variant: str = "secondary"):
+    def _create_button(
+        self,
+        parent,
+        text: str,
+        command,
+        *,
+        variant: str = "secondary",
+        width: int = 104,
+    ):
         tk = self.tk
         colors = UI_COLORS
         palette = self._button_palette(variant)
         height = 40 if variant == "primary" else 38
         radius = 6
+        try:
+            parent_bg = parent.cget("background")
+        except self.tk.TclError:
+            parent_bg = colors["card_bg"]
         button = tk.Canvas(
             parent,
+            width=width,
             height=height,
-            bg=colors["card_bg"],
+            bg=parent_bg,
             bd=0,
             highlightthickness=0,
             cursor="hand2",
@@ -653,78 +739,109 @@ class UnmultApp:
 
     def _build_import_section(self, parent, row: int) -> None:
         ttk = self.ttk
-        self.import_section, body = self._create_section(parent, "导入素材", row)
+        tk = self.tk
+        colors = UI_COLORS
+        fonts = UI_FONTS
+        self.import_section, body = self._create_section(parent, "1. 上传图像", row)
         body.columnconfigure(0, weight=1)
-        body.columnconfigure(1, weight=1)
-        body.columnconfigure(2, weight=1)
 
-        self._create_button(body, "添加图片", self.add_files).grid(
-            row=0,
-            column=0,
-            sticky="ew",
-            padx=(0, 4),
+        drop_zone = tk.Frame(
+            body,
+            bg=colors["surface"],
+            highlightthickness=1,
+            highlightbackground=colors["border_soft"],
+            bd=0,
+            height=86,
         )
-        self._create_button(body, "添加文件夹", self.add_folder).grid(
-            row=0,
-            column=1,
-            sticky="ew",
-            padx=4,
+        drop_zone.grid(row=0, column=0, sticky="ew")
+        drop_zone.grid_propagate(False)
+        drop_zone.columnconfigure(0, weight=1)
+        drop_zone.rowconfigure(0, weight=1)
+        self.drop_zone = drop_zone
+
+        self.drop_zone_label = tk.Label(
+            drop_zone,
+            text="拖拽图片或文件夹到这里",
+            bg=colors["surface"],
+            fg=colors["muted"],
+            font=fonts["base"],
+            anchor="center",
         )
-        self._create_button(body, "清空", self.clear_files).grid(
-            row=0,
-            column=2,
-            sticky="ew",
-            padx=(4, 0),
-        )
+        self.drop_zone_label.grid(row=0, column=0, sticky="nsew")
+
         ttk.Checkbutton(
             body,
             text="递归读取子文件夹",
             variable=self.recursive,
-        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        ).grid(row=1, column=0, sticky="w", pady=(8, 0))
 
     def _build_export_section(self, parent, row: int) -> None:
         ttk = self.ttk
-        self.export_section, body = self._create_section(parent, "批量导出", row)
+        self.export_section, body = self._create_section(parent, "3. 导出设置", row)
         body.columnconfigure(0, weight=1)
 
-        ttk.Entry(body, textvariable=self.output_dir).grid(
+        self._create_label(body, "输出目录", muted=True).grid(
             row=0,
-            column=0,
-            sticky="ew",
-            pady=(0, 7),
-        )
-        self._create_button(body, "选择输出目录", self.pick_output_dir).grid(
-            row=1,
-            column=0,
-            sticky="ew",
-            pady=(0, 9),
-        )
-        self._create_label(body, "文件后缀", muted=True).grid(
-            row=2,
             column=0,
             sticky="w",
         )
-        ttk.Entry(body, textvariable=self.suffix).grid(
-            row=3,
+        self._create_label(body, "文件后缀", muted=True).grid(
+            row=0,
+            column=2,
+            sticky="w",
+            padx=(12, 0),
+        )
+
+        ttk.Entry(body, textvariable=self.output_dir).grid(
+            row=1,
             column=0,
             sticky="ew",
-            pady=(4, 7),
+            pady=(4, 0),
         )
+        self._create_button(body, "选择输出目录", self.pick_output_dir).grid(
+            row=1,
+            column=1,
+            sticky="ew",
+            padx=(8, 0),
+            pady=(4, 0),
+        )
+        ttk.Entry(body, textvariable=self.suffix, width=14).grid(
+            row=1,
+            column=2,
+            sticky="ew",
+            padx=(12, 0),
+            pady=(4, 0),
+        )
+        checks = self.tk.Frame(body, bg=UI_COLORS["card_bg"])
+        checks.grid(row=1, column=3, sticky="w", padx=(12, 0), pady=(4, 0))
         ttk.Checkbutton(
-            body,
+            checks,
             text="覆盖同名 PNG",
             variable=self.overwrite,
-        ).grid(row=4, column=0, sticky="w", pady=(0, 8))
+        ).grid(row=0, column=0, sticky="w")
+        ttk.Checkbutton(
+            checks,
+            text="保持预乘 RGB",
+            variable=self.premultiplied_output,
+            command=self.schedule_preview_update,
+        ).grid(row=1, column=0, sticky="w")
         self._create_button(
             body,
             "开始批量处理",
             self.start_batch,
             variant="primary",
-        ).grid(row=5, column=0, sticky="ew")
+            width=160,
+        ).grid(
+            row=1,
+            column=4,
+            sticky="ew",
+            padx=(16, 0),
+            pady=(4, 0),
+        )
 
     def _build_settings_section(self, parent, row: int) -> None:
         ttk = self.ttk
-        self.settings_section, body = self._create_section(parent, "去黑参数", row)
+        self.settings_section, body = self._create_section(parent, "2. 调整参数", row)
         body.columnconfigure(1, weight=1)
 
         self._add_slider(body, "黑场", self.black_point, 0, 240, 0)
@@ -754,36 +871,13 @@ class UnmultApp:
         mode_box.grid(row=3, column=1, sticky="ew", pady=4)
         mode_box.bind("<<ComboboxSelected>>", lambda _event: self.schedule_preview_update())
 
-        self._create_label(body, "预览底色").grid(
-            row=4,
-            column=0,
-            sticky="w",
-            pady=4,
-        )
-        bg_box = ttk.Combobox(
-            body,
-            textvariable=self.preview_bg,
-            state="readonly",
-            values=("checker", "black", "white"),
-            width=12,
-        )
-        bg_box.grid(row=4, column=1, sticky="ew", pady=4)
-        bg_box.bind("<<ComboboxSelected>>", lambda _event: self.schedule_preview_update())
-
-        ttk.Checkbutton(
-            body,
-            text="输出保持预乘 RGB",
-            variable=self.premultiplied_output,
-            command=self.schedule_preview_update,
-        ).grid(row=5, column=0, columnspan=2, sticky="w", pady=(6, 0))
-
     def _build_file_list_section(self, parent, row: int) -> None:
         tk = self.tk
         ttk = self.ttk
         colors = UI_COLORS
         self.file_list_section, body = self._create_section(
             parent,
-            "图片列表",
+            "文件列表",
             row,
             sticky="nsew",
         )
@@ -807,7 +901,11 @@ class UnmultApp:
             relief="flat",
             borderwidth=0,
         )
-        list_scrollbar = ttk.Scrollbar(body, orient="vertical")
+        list_scrollbar = ttk.Scrollbar(
+            body,
+            orient="vertical",
+            style="Vertical.TScrollbar",
+        )
         self.file_list.configure(yscrollcommand=list_scrollbar.set)
         list_scrollbar.configure(command=self.file_list.yview)
         self.file_list.grid(row=0, column=0, sticky="nsew")
@@ -817,7 +915,7 @@ class UnmultApp:
             lambda _event: self.load_selected_preview(),
         )
 
-    def _build_preview_area(self, parent) -> None:
+    def _build_preview_area(self, parent, row: int) -> None:
         tk = self.tk
         colors = UI_COLORS
         fonts = UI_FONTS
@@ -830,10 +928,35 @@ class UnmultApp:
             padx=14,
             pady=14,
         )
-        main.grid(row=0, column=1, sticky="nsew")
+        main.grid(row=row, column=0, sticky="nsew", pady=(0, 10))
         main.columnconfigure(0, weight=1)
-        main.rowconfigure(0, weight=1)
+        main.rowconfigure(1, weight=1)
         self.preview_frame = main
+
+        header = tk.Frame(main, bg=colors["preview_bg"])
+        header.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        header.columnconfigure(1, weight=1)
+        tk.Label(
+            header,
+            text="预览",
+            bg=colors["preview_bg"],
+            fg=colors["text"],
+            font=fonts["section"],
+            anchor="w",
+        ).grid(row=0, column=0, sticky="w")
+
+        controls = tk.Frame(header, bg=colors["preview_bg"])
+        controls.grid(row=0, column=1, sticky="e")
+        tk.Label(
+            controls,
+            text="预览背景:",
+            bg=colors["preview_bg"],
+            fg=colors["muted"],
+            font=fonts["small"],
+        ).grid(row=0, column=0, padx=(0, 6))
+        self._add_preview_bg_option(controls, "灰格", "checker", 1)
+        self._add_preview_bg_option(controls, "黑色", "black", 2)
+        self._add_preview_bg_option(controls, "白色", "white", 3)
 
         self.preview_label = tk.Label(
             main,
@@ -845,11 +968,58 @@ class UnmultApp:
             relief="flat",
             bd=0,
         )
-        self.preview_label.grid(row=0, column=0, sticky="nsew")
+        self.preview_label.grid(row=1, column=0, sticky="nsew")
         self.preview_label.bind(
             "<Configure>",
             lambda _event: self.schedule_preview_update(delay=180),
         )
+
+        nav = tk.Frame(main, bg=colors["preview_bg"])
+        nav.grid(row=2, column=0, sticky="ew", pady=(10, 0))
+        nav.columnconfigure(2, weight=1)
+        self._create_button(nav, "上一张", self.select_previous_file, width=82).grid(
+            row=0,
+            column=0,
+            padx=(0, 8),
+        )
+        self._create_button(nav, "下一张", self.select_next_file, width=82).grid(
+            row=0,
+            column=1,
+            padx=(0, 12),
+        )
+        tk.Label(
+            nav,
+            textvariable=self.preview_position,
+            bg=colors["preview_bg"],
+            fg=colors["muted"],
+            font=fonts["small"],
+            anchor="center",
+        ).grid(row=0, column=2)
+
+    def _add_preview_bg_option(self, parent, text: str, value: str, column: int) -> None:
+        colors = UI_COLORS
+        button = self.tk.Radiobutton(
+            parent,
+            text=text,
+            value=value,
+            variable=self.preview_bg,
+            command=self.schedule_preview_update,
+            indicatoron=False,
+            bg=colors["surface"],
+            fg=colors["text"],
+            activebackground=colors["surface_hover"],
+            activeforeground=colors["text"],
+            selectcolor=colors["accent_soft"],
+            relief="flat",
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=colors["border_soft"],
+            highlightcolor=colors["accent"],
+            padx=10,
+            pady=4,
+            font=UI_FONTS["small"],
+        )
+        button.grid(row=0, column=column, padx=(0, 6))
 
     def _build_status_bar(self, parent) -> None:
         self.status_bar = self.tk.Label(
@@ -946,11 +1116,67 @@ class UnmultApp:
         value_entry.bind("<FocusOut>", commit_entry)
         refresh_entry()
 
+    def reset_settings(self) -> None:
+        self.black_point.set(0)
+        self.white_point.set(255)
+        self.gamma.set(1.0)
+        self.mode.set("max")
+        self.preview_bg.set("checker")
+        self.premultiplied_output.set(False)
+        self.schedule_preview_update()
+        self.status.set("参数已重置。")
+
+    def show_help(self) -> None:
+        self.messagebox.showinfo(
+            "使用说明",
+            "添加图片或文件夹后，在左侧选择素材预览。\n"
+            "调整黑场、白场和 Gamma 后，点击右下方开始批量处理。",
+        )
+
+    def show_about(self) -> None:
+        self.messagebox.showinfo(
+            "关于",
+            "Unmult 去黑批处理工具\n源码 UI 调整版",
+        )
+
+    def _update_preview_position(self) -> None:
+        if not self.files:
+            self.preview_position.set("0 / 0")
+            return
+
+        selected = self.file_list.curselection()
+        index = selected[0] if selected else 0
+        self.preview_position.set(f"{index + 1} / {len(self.files)}")
+
+    def _select_file_index(self, index: int) -> None:
+        if not self.files:
+            self._update_preview_position()
+            return
+
+        index = max(0, min(index, len(self.files) - 1))
+        self.file_list.selection_clear(0, self.tk.END)
+        self.file_list.selection_set(index)
+        self.file_list.activate(index)
+        self.file_list.see(index)
+        self.load_selected_preview()
+
+    def select_previous_file(self) -> None:
+        selected = self.file_list.curselection()
+        index = selected[0] - 1 if selected else 0
+        self._select_file_index(index)
+
+    def select_next_file(self) -> None:
+        selected = self.file_list.curselection()
+        index = selected[0] + 1 if selected else 0
+        self._select_file_index(index)
+
     def _enable_drag_and_drop(self) -> None:
         if self.drop_file_token is None:
             return
 
-        for widget in (self.root, self.file_list, self.preview_label):
+        widgets = [self.root, self.file_list, self.preview_label]
+        widgets.extend([self.drop_zone, self.drop_zone_label])
+        for widget in widgets:
             widget.drop_target_register(self.drop_file_token)
             widget.dnd_bind("<<Drop>>", self._handle_drop)
 
@@ -1013,12 +1239,14 @@ class UnmultApp:
         self.file_list.delete(0, self.tk.END)
         self.preview_photo = None
         self.preview_label.configure(image="", text=PREVIEW_EMPTY_TEXT)
+        self._update_preview_position()
         self.status.set("列表已清空。")
 
     def refresh_file_list(self) -> None:
         self.file_list.delete(0, self.tk.END)
         for path in self.files:
             self.file_list.insert(self.tk.END, str(path))
+        self._update_preview_position()
 
     def selected_file(self) -> Path | None:
         selected = self.file_list.curselection()
@@ -1035,6 +1263,7 @@ class UnmultApp:
             with Image.open(path) as image:
                 self.preview_source = make_preview_source(image)
             self.update_preview()
+            self._update_preview_position()
             self.status.set(f"预览：{path.name}")
         except OSError as exc:
             self.messagebox.showerror("无法打开图片", f"{path}\n\n{exc}")
@@ -1113,7 +1342,7 @@ class UnmultApp:
         except queue.Empty:
             pass
 
-        self.root.after(120, self._poll_worker_queue)
+        self.worker_poll_job = self.root.after(120, self._poll_worker_queue)
 
 
 def build_parser() -> argparse.ArgumentParser:

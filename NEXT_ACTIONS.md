@@ -1,7 +1,7 @@
 ## Now
 
 1. Let the user run the source UI with `python .\unmult_tool.py --gui` or `launch_unmult_tool.bat`.
-2. Collect visual feedback on the corrected card/button styling, especially whether the left sidebar now feels close enough to the generated visual direction.
+2. Collect visual feedback on the red-box layout correction: top toolbar, preview header controls, right-bottom export panel, and left upload/list/settings column.
 3. If the style is accepted, plan a separate packaging stage to rebuild `UnmultBatchTool.exe`.
 
 ## Handoff Notes
@@ -14,6 +14,7 @@ Do not redo:
 - Preview debouncing/downsampling fix.
 - Professional light UI style foundation and main layout restyle on branch `codex/ui-restyle`.
 - User-feedback polish replacing old `LabelFrame` groups and default buttons with flat card sections and Canvas rounded buttons.
+- Red-box layout correction removing the big title header and moving export/settings around the preview.
 
 Verify next:
 - Run `python -m unittest tests.test_unmult_tool`.

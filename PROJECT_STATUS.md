@@ -3,7 +3,7 @@
 Last Updated: 2026-06-02
 
 Project: UnmultBatchTool
-Phase: UI polish correction after visual feedback
+Phase: Red-box UI layout correction after visual feedback
 
 Current state:
 - Reconstructed editable Python source from the original PyInstaller executable.
@@ -11,16 +11,18 @@ Current state:
 - Added first interaction fixes: optional drag-and-drop via `tkinterdnd2`, debounced preview updates, preview downsampling, and a more usable export panel placement.
 - Restyled the source UI as a professional light Tkinter tool: centralized style tokens, header/content/status layout, left workflow sidebar, right preview surface, accent primary export button, clearer list and preview empty states.
 - Applied user feedback that the first restyle still looked too close to old system controls: replaced `ttk.LabelFrame` sidebar groups with flat white card sections, moved key labels/buttons to custom light surfaces, and replaced default buttons with Canvas-drawn rounded buttons.
+- Applied the user's marked reference layout: removed the large in-window title, added a top action toolbar, kept upload/list/settings on the left, moved preview background controls to the preview header, and moved export settings below the preview so the default window shows the full export workflow.
 
 Verification evidence:
 - Stage 1 style foundation: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, and GUI smoke passed.
 - Stage 2 layout restyle: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, and GUI smoke passed.
 - Stage 3 detail polish: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, and GUI smoke passed.
 - UI polish correction: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, GUI smoke, and local screenshot review passed.
+- Red-box layout correction: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, GUI smoke, and default-window screenshot review passed.
 
 Dirty state:
 - Work is on branch `codex/ui-restyle`.
-- UI restyle has four phase checkpoints on `codex/ui-restyle`, including this user-feedback polish.
+- UI restyle has five phase checkpoints on `codex/ui-restyle`, including the red-box layout correction.
 - Next action is user visual review of the updated source UI.
 
 Known risks:

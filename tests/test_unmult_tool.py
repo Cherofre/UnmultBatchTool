@@ -13,6 +13,11 @@ from unmult_tool import (
 
 
 class UnmultToolTests(unittest.TestCase):
+    def destroy_app(self, app):
+        if app.worker_poll_job is not None:
+            app.root.after_cancel(app.worker_poll_job)
+        app.root.destroy()
+
     def test_parse_dropped_paths_handles_multiple_tk_paths(self):
         def splitlist(data):
             self.assertEqual(data, "{D:/素材/a b.png} D:/素材/c.png")
@@ -38,20 +43,24 @@ class UnmultToolTests(unittest.TestCase):
             self.assertEqual(app.root.cget("background"), UI_COLORS["app_bg"])
             self.assertTrue(hasattr(app, "style"))
         finally:
-            app.root.destroy()
+            self.destroy_app(app)
 
-    def test_export_section_is_above_settings_in_sidebar(self):
+    def test_layout_places_export_below_preview_and_settings_in_sidebar(self):
         app = UnmultApp()
         try:
             app.root.update_idletasks()
+            preview_row = int(app.preview_frame.grid_info()["row"])
             export_row = int(app.export_section.grid_info()["row"])
-            settings_row = int(app.settings_section.grid_info()["row"])
+            import_row = int(app.import_section.grid_info()["row"])
             list_row = int(app.file_list_section.grid_info()["row"])
+            settings_row = int(app.settings_section.grid_info()["row"])
 
-            self.assertLess(export_row, settings_row)
-            self.assertLess(settings_row, list_row)
+            self.assertLess(preview_row, export_row)
+            self.assertLess(import_row, list_row)
+            self.assertLess(list_row, settings_row)
+            self.assertEqual(app.export_section.master, app.preview_column)
         finally:
-            app.root.destroy()
+            self.destroy_app(app)
 
     def test_sidebar_sections_use_flat_card_frames(self):
         app = UnmultApp()
@@ -62,7 +71,29 @@ class UnmultToolTests(unittest.TestCase):
             self.assertEqual(app.export_section.cget("background"), UI_COLORS["card_bg"])
             self.assertEqual(app.file_list.cget("background"), UI_COLORS["surface"])
         finally:
-            app.root.destroy()
+            self.destroy_app(app)
+
+    def test_top_toolbar_replaces_large_header(self):
+        app = UnmultApp()
+        try:
+            app.root.update_idletasks()
+
+            self.assertTrue(hasattr(app, "toolbar"))
+            self.assertFalse(hasattr(app, "header"))
+            self.assertEqual(int(app.toolbar.grid_info()["row"]), 0)
+        finally:
+            self.destroy_app(app)
+
+    def test_default_layout_keeps_export_controls_visible(self):
+        app = UnmultApp()
+        try:
+            app.root.update()
+            export_bottom = app.export_section.winfo_rooty() + app.export_section.winfo_height()
+            status_top = app.status_bar.winfo_rooty()
+
+            self.assertLess(export_bottom, status_top)
+        finally:
+            self.destroy_app(app)
 
     def test_clear_files_restores_preview_empty_state(self):
         app = UnmultApp()
@@ -71,7 +102,7 @@ class UnmultToolTests(unittest.TestCase):
             app.clear_files()
             self.assertEqual(app.preview_label.cget("text"), PREVIEW_EMPTY_TEXT)
         finally:
-            app.root.destroy()
+            self.destroy_app(app)
 
 
 if __name__ == "__main__":
