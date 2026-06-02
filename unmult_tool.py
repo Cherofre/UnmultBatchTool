@@ -24,6 +24,30 @@ SUPPORTED_EXTENSIONS = {
 
 PREVIEW_MAX_EDGE = 900
 
+UI_COLORS = {
+    "app_bg": "#f3f5f7",
+    "panel_bg": "#ffffff",
+    "surface": "#f8fafc",
+    "border": "#d8dde5",
+    "border_strong": "#c4cbd6",
+    "text": "#20242a",
+    "muted": "#68717d",
+    "accent": "#2f6fb2",
+    "accent_hover": "#275f9c",
+    "accent_pressed": "#214f83",
+    "accent_text": "#ffffff",
+    "selection": "#d9e9fb",
+    "success": "#2c7a57",
+}
+
+UI_FONTS = {
+    "base": ("Segoe UI", 10),
+    "small": ("Segoe UI", 9),
+    "title": ("Segoe UI", 15, "bold"),
+    "section": ("Segoe UI", 10, "bold"),
+    "button": ("Segoe UI", 10),
+}
+
 
 def _path_from_drop_item(item: str) -> Path:
     if item.startswith("file://"):
@@ -217,6 +241,8 @@ class UnmultApp:
         self.root.title("Unmult 去黑批处理工具")
         self.root.geometry("1040x680")
         self.root.minsize(860, 560)
+        self.style = ttk.Style(self.root)
+        self._configure_style()
 
         self.files: list[Path] = []
         self.preview_source: Image.Image | None = None
@@ -242,6 +268,136 @@ class UnmultApp:
 
     def run(self) -> None:
         self.root.mainloop()
+
+    def _configure_style(self) -> None:
+        colors = UI_COLORS
+        fonts = UI_FONTS
+        if "clam" in self.style.theme_names():
+            self.style.theme_use("clam")
+
+        self.root.configure(background=colors["app_bg"])
+        self.root.option_add("*Font", fonts["base"])
+        self.root.option_add("*Listbox.Font", fonts["small"])
+        self.root.option_add("*Listbox.Background", colors["panel_bg"])
+        self.root.option_add("*Listbox.Foreground", colors["text"])
+        self.root.option_add("*Listbox.selectBackground", colors["selection"])
+        self.root.option_add("*Listbox.selectForeground", colors["text"])
+        self.root.option_add("*Listbox.BorderWidth", 0)
+        self.root.option_add("*Listbox.Relief", "flat")
+
+        self.style.configure(".", font=fonts["base"])
+        self.style.configure("TFrame", background=colors["app_bg"])
+        self.style.configure("Panel.TFrame", background=colors["panel_bg"])
+        self.style.configure(
+            "TLabel",
+            background=colors["app_bg"],
+            foreground=colors["text"],
+        )
+        self.style.configure(
+            "Muted.TLabel",
+            background=colors["app_bg"],
+            foreground=colors["muted"],
+            font=fonts["small"],
+        )
+        self.style.configure(
+            "Title.TLabel",
+            background=colors["app_bg"],
+            foreground=colors["text"],
+            font=fonts["title"],
+        )
+        self.style.configure(
+            "TButton",
+            background=colors["surface"],
+            bordercolor=colors["border"],
+            focusthickness=2,
+            focuscolor=colors["accent"],
+            font=fonts["button"],
+            padding=(10, 7),
+            relief="flat",
+        )
+        self.style.map(
+            "TButton",
+            background=[
+                ("pressed", colors["border"]),
+                ("active", "#eef2f6"),
+            ],
+            bordercolor=[("focus", colors["accent"])],
+        )
+        self.style.configure(
+            "Accent.TButton",
+            background=colors["accent"],
+            foreground=colors["accent_text"],
+            bordercolor=colors["accent"],
+            font=fonts["button"],
+            padding=(12, 8),
+        )
+        self.style.map(
+            "Accent.TButton",
+            background=[
+                ("pressed", colors["accent_pressed"]),
+                ("active", colors["accent_hover"]),
+            ],
+            foreground=[("disabled", colors["surface"])],
+        )
+        self.style.configure(
+            "TLabelFrame",
+            background=colors["panel_bg"],
+            bordercolor=colors["border"],
+            lightcolor=colors["border"],
+            darkcolor=colors["border"],
+            relief="solid",
+            padding=8,
+        )
+        self.style.configure(
+            "TLabelFrame.Label",
+            background=colors["panel_bg"],
+            foreground=colors["text"],
+            font=fonts["section"],
+        )
+        self.style.configure(
+            "TEntry",
+            fieldbackground=colors["panel_bg"],
+            foreground=colors["text"],
+            bordercolor=colors["border"],
+            lightcolor=colors["border"],
+            darkcolor=colors["border"],
+            insertcolor=colors["text"],
+            padding=(6, 5),
+        )
+        self.style.configure(
+            "TCombobox",
+            fieldbackground=colors["panel_bg"],
+            background=colors["panel_bg"],
+            foreground=colors["text"],
+            bordercolor=colors["border"],
+            arrowcolor=colors["muted"],
+            padding=(6, 5),
+        )
+        self.style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", colors["panel_bg"])],
+            selectbackground=[("readonly", colors["selection"])],
+            selectforeground=[("readonly", colors["text"])],
+        )
+        self.style.configure(
+            "TScale",
+            background=colors["panel_bg"],
+            troughcolor="#e7ebf0",
+            bordercolor=colors["border"],
+            lightcolor=colors["border"],
+            darkcolor=colors["border"],
+        )
+        self.style.configure(
+            "TCheckbutton",
+            background=colors["panel_bg"],
+            foreground=colors["text"],
+            focuscolor=colors["accent"],
+        )
+        self.style.map(
+            "TCheckbutton",
+            background=[("active", colors["panel_bg"])],
+            foreground=[("disabled", colors["muted"])],
+        )
 
     def _build_ui(self) -> None:
         tk = self.tk
