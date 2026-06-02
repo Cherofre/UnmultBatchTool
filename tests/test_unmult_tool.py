@@ -53,6 +53,17 @@ class UnmultToolTests(unittest.TestCase):
         finally:
             app.root.destroy()
 
+    def test_sidebar_sections_use_flat_card_frames(self):
+        app = UnmultApp()
+        try:
+            app.root.update_idletasks()
+
+            self.assertEqual(app.import_section.winfo_class(), "Frame")
+            self.assertEqual(app.export_section.cget("background"), UI_COLORS["card_bg"])
+            self.assertEqual(app.file_list.cget("background"), UI_COLORS["surface"])
+        finally:
+            app.root.destroy()
+
     def test_clear_files_restores_preview_empty_state(self):
         app = UnmultApp()
         try:

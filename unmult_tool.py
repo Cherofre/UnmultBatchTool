@@ -26,18 +26,27 @@ PREVIEW_MAX_EDGE = 900
 PREVIEW_EMPTY_TEXT = "拖入图片或从左侧列表选择素材"
 
 UI_COLORS = {
-    "app_bg": "#f3f5f7",
-    "panel_bg": "#ffffff",
-    "surface": "#f8fafc",
-    "border": "#d8dde5",
-    "border_strong": "#c4cbd6",
-    "text": "#20242a",
-    "muted": "#68717d",
-    "accent": "#2f6fb2",
-    "accent_hover": "#275f9c",
-    "accent_pressed": "#214f83",
+    "app_bg": "#eef1f5",
+    "header_bg": "#f8fafc",
+    "panel_bg": "#f5f7fa",
+    "card_bg": "#ffffff",
+    "surface": "#f9fbfd",
+    "surface_hover": "#f1f5f9",
+    "field_bg": "#ffffff",
+    "preview_bg": "#f7f9fc",
+    "border": "#d6dde7",
+    "border_soft": "#e6ebf1",
+    "border_strong": "#b8c1cf",
+    "text": "#18212f",
+    "muted": "#667085",
+    "muted_soft": "#8a94a3",
+    "accent": "#256fb6",
+    "accent_hover": "#1f609f",
+    "accent_pressed": "#194f84",
+    "accent_soft": "#e8f2ff",
     "accent_text": "#ffffff",
-    "selection": "#d9e9fb",
+    "selection": "#d8eaff",
+    "status_bg": "#ffffff",
     "success": "#2c7a57",
 }
 
@@ -279,7 +288,7 @@ class UnmultApp:
         self.root.configure(background=colors["app_bg"])
         self.root.option_add("*Font", fonts["base"])
         self.root.option_add("*Listbox.Font", fonts["small"])
-        self.root.option_add("*Listbox.Background", colors["panel_bg"])
+        self.root.option_add("*Listbox.Background", colors["card_bg"])
         self.root.option_add("*Listbox.Foreground", colors["text"])
         self.root.option_add("*Listbox.selectBackground", colors["selection"])
         self.root.option_add("*Listbox.selectForeground", colors["text"])
@@ -288,7 +297,8 @@ class UnmultApp:
 
         self.style.configure(".", font=fonts["base"])
         self.style.configure("TFrame", background=colors["app_bg"])
-        self.style.configure("Panel.TFrame", background=colors["panel_bg"])
+        self.style.configure("Panel.TFrame", background=colors["card_bg"])
+        self.style.configure("Card.TFrame", background=colors["card_bg"])
         self.style.configure(
             "TLabel",
             background=colors["app_bg"],
@@ -357,18 +367,18 @@ class UnmultApp:
         )
         self.style.configure(
             "TEntry",
-            fieldbackground=colors["panel_bg"],
+            fieldbackground=colors["field_bg"],
             foreground=colors["text"],
             bordercolor=colors["border"],
             lightcolor=colors["border"],
             darkcolor=colors["border"],
             insertcolor=colors["text"],
-            padding=(6, 5),
+            padding=(7, 6),
         )
         self.style.configure(
             "TCombobox",
-            fieldbackground=colors["panel_bg"],
-            background=colors["panel_bg"],
+            fieldbackground=colors["field_bg"],
+            background=colors["field_bg"],
             foreground=colors["text"],
             bordercolor=colors["border"],
             arrowcolor=colors["muted"],
@@ -376,46 +386,46 @@ class UnmultApp:
         )
         self.style.map(
             "TCombobox",
-            fieldbackground=[("readonly", colors["panel_bg"])],
+            fieldbackground=[("readonly", colors["field_bg"])],
             selectbackground=[("readonly", colors["selection"])],
             selectforeground=[("readonly", colors["text"])],
         )
         self.style.configure(
             "TScale",
-            background=colors["panel_bg"],
-            troughcolor="#e7ebf0",
+            background=colors["card_bg"],
+            troughcolor="#dde5ee",
             bordercolor=colors["border"],
             lightcolor=colors["border"],
             darkcolor=colors["border"],
         )
         self.style.configure(
             "TCheckbutton",
-            background=colors["panel_bg"],
+            background=colors["card_bg"],
             foreground=colors["text"],
             focuscolor=colors["accent"],
         )
         self.style.map(
             "TCheckbutton",
-            background=[("active", colors["panel_bg"])],
+            background=[("active", colors["card_bg"])],
             foreground=[("disabled", colors["muted"])],
         )
-        self.style.configure("Header.TFrame", background=colors["app_bg"])
+        self.style.configure("Header.TFrame", background=colors["header_bg"])
         self.style.configure("Sidebar.TFrame", background=colors["panel_bg"])
         self.style.configure(
             "Preview.TFrame",
-            background=colors["surface"],
+            background=colors["preview_bg"],
             bordercolor=colors["border"],
             relief="solid",
         )
         self.style.configure(
             "Preview.TLabel",
-            background=colors["surface"],
+            background=colors["preview_bg"],
             foreground=colors["muted"],
             font=fonts["base"],
         )
         self.style.configure(
             "Status.TLabel",
-            background=colors["panel_bg"],
+            background=colors["status_bg"],
             foreground=colors["muted"],
             font=fonts["small"],
             padding=(12, 7),
@@ -429,12 +439,12 @@ class UnmultApp:
 
         self._build_header(root)
 
-        content = self.ttk.Frame(root, style="Header.TFrame")
-        content.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 10))
+        content = self.ttk.Frame(root, style="TFrame")
+        content.grid(row=1, column=0, sticky="nsew", padx=12, pady=(12, 10))
         content.columnconfigure(1, weight=1)
         content.rowconfigure(0, weight=1)
 
-        side = self.ttk.Frame(content, style="Sidebar.TFrame", padding=10, width=338)
+        side = self.ttk.Frame(content, style="Sidebar.TFrame", padding=10, width=340)
         side.grid(row=0, column=0, sticky="nsw", padx=(0, 12))
         side.grid_propagate(False)
         side.columnconfigure(0, weight=1)
@@ -449,105 +459,278 @@ class UnmultApp:
         self._build_status_bar(root)
 
     def _build_header(self, parent) -> None:
-        ttk = self.ttk
-        header = ttk.Frame(parent, style="Header.TFrame", padding=(14, 10, 14, 8))
+        tk = self.tk
+        colors = UI_COLORS
+        fonts = UI_FONTS
+        header = tk.Frame(
+            parent,
+            bg=colors["header_bg"],
+            highlightthickness=1,
+            highlightbackground=colors["border_soft"],
+            bd=0,
+            padx=16,
+            pady=11,
+        )
         header.grid(row=0, column=0, sticky="ew")
         header.columnconfigure(0, weight=1)
         self.header = header
 
-        ttk.Label(header, text="Unmult 去黑批处理工具", style="Title.TLabel").grid(
+        tk.Label(
+            header,
+            text="Unmult 去黑批处理工具",
+            bg=colors["header_bg"],
+            fg=colors["text"],
+            font=fonts["title"],
+        ).grid(
             row=0,
             column=0,
             sticky="w",
         )
-        ttk.Label(
+        tk.Label(
             header,
             text="批量移除黑底素材，生成透明 PNG",
-            style="Muted.TLabel",
+            bg=colors["header_bg"],
+            fg=colors["muted"],
+            font=fonts["small"],
         ).grid(row=1, column=0, sticky="w", pady=(2, 0))
+
+    def _create_section(self, parent, title: str, row: int, sticky: str = "ew"):
+        tk = self.tk
+        colors = UI_COLORS
+        fonts = UI_FONTS
+        section = tk.Frame(
+            parent,
+            bg=colors["card_bg"],
+            highlightthickness=1,
+            highlightbackground=colors["border"],
+            bd=0,
+        )
+        section.grid(row=row, column=0, sticky=sticky, pady=(0, 10))
+        section.columnconfigure(0, weight=1)
+
+        tk.Label(
+            section,
+            text=title,
+            bg=colors["card_bg"],
+            fg=colors["text"],
+            font=fonts["section"],
+            anchor="w",
+            padx=12,
+            pady=8,
+        ).grid(row=0, column=0, sticky="ew")
+
+        body = tk.Frame(section, bg=colors["card_bg"], padx=12, pady=0)
+        body.grid(row=1, column=0, sticky="nsew", pady=(0, 12))
+        body.columnconfigure(0, weight=1)
+        return section, body
+
+    def _create_label(self, parent, text: str, *, muted: bool = False):
+        colors = UI_COLORS
+        fonts = UI_FONTS
+        return self.tk.Label(
+            parent,
+            text=text,
+            bg=colors["card_bg"],
+            fg=colors["muted"] if muted else colors["text"],
+            font=fonts["small"],
+            anchor="w",
+        )
+
+    def _button_palette(self, variant: str) -> dict[str, str]:
+        colors = UI_COLORS
+        if variant == "primary":
+            return {
+                "bg": colors["accent"],
+                "fg": colors["accent_text"],
+                "hover": colors["accent_hover"],
+                "pressed": colors["accent_pressed"],
+                "border": colors["accent"],
+            }
+        return {
+            "bg": colors["surface"],
+            "fg": colors["text"],
+            "hover": colors["surface_hover"],
+            "pressed": colors["border_soft"],
+            "border": colors["border"],
+        }
+
+    def _create_button(self, parent, text: str, command, *, variant: str = "secondary"):
+        tk = self.tk
+        colors = UI_COLORS
+        palette = self._button_palette(variant)
+        height = 40 if variant == "primary" else 38
+        radius = 6
+        button = tk.Canvas(
+            parent,
+            height=height,
+            bg=colors["card_bg"],
+            bd=0,
+            highlightthickness=0,
+            cursor="hand2",
+            takefocus=True,
+        )
+        state = {"bg": palette["bg"], "border": palette["border"]}
+
+        def rounded_rect(
+            x1: int,
+            y1: int,
+            x2: int,
+            y2: int,
+            r: int,
+            **kwargs,
+        ) -> None:
+            points = [
+                x1 + r,
+                y1,
+                x2 - r,
+                y1,
+                x2,
+                y1,
+                x2,
+                y1 + r,
+                x2,
+                y2 - r,
+                x2,
+                y2,
+                x2 - r,
+                y2,
+                x1 + r,
+                y2,
+                x1,
+                y2,
+                x1,
+                y2 - r,
+                x1,
+                y1 + r,
+                x1,
+                y1,
+            ]
+            button.create_polygon(points, smooth=True, splinesteps=12, **kwargs)
+
+        def redraw() -> None:
+            width = max(button.winfo_width(), 40)
+            button.delete("all")
+            border = state["border"]
+            if button.focus_get() == button:
+                border = colors["accent"]
+            rounded_rect(
+                1,
+                1,
+                width - 1,
+                height - 1,
+                radius,
+                fill=state["bg"],
+                outline=border,
+            )
+            button.create_text(
+                width / 2,
+                height / 2,
+                text=text,
+                fill=palette["fg"],
+                font=UI_FONTS["button"],
+            )
+
+        def apply_colors(bg: str) -> None:
+            state["bg"] = bg
+            redraw()
+
+        def activate(_event=None) -> str:
+            apply_colors(palette["hover"])
+            command()
+            return "break"
+
+        button.bind("<Configure>", lambda _event: redraw())
+        button.bind("<Enter>", lambda _event: apply_colors(palette["hover"]))
+        button.bind("<Leave>", lambda _event: apply_colors(palette["bg"]))
+        button.bind("<ButtonPress-1>", lambda _event: apply_colors(palette["pressed"]))
+        button.bind("<ButtonRelease-1>", activate)
+        button.bind("<FocusIn>", lambda _event: redraw())
+        button.bind("<FocusOut>", lambda _event: redraw())
+        button.bind("<Return>", activate)
+        button.bind("<space>", activate)
+        redraw()
+        return button
 
     def _build_import_section(self, parent, row: int) -> None:
         ttk = self.ttk
-        self.import_section = ttk.LabelFrame(parent, text="导入素材", padding=8)
-        self.import_section.grid(row=row, column=0, sticky="ew", pady=(0, 8))
-        self.import_section.columnconfigure(0, weight=1)
-        self.import_section.columnconfigure(1, weight=1)
-        self.import_section.columnconfigure(2, weight=1)
+        self.import_section, body = self._create_section(parent, "导入素材", row)
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=1)
+        body.columnconfigure(2, weight=1)
 
-        ttk.Button(self.import_section, text="添加图片", command=self.add_files).grid(
+        self._create_button(body, "添加图片", self.add_files).grid(
             row=0,
             column=0,
             sticky="ew",
             padx=(0, 4),
         )
-        ttk.Button(self.import_section, text="添加文件夹", command=self.add_folder).grid(
+        self._create_button(body, "添加文件夹", self.add_folder).grid(
             row=0,
             column=1,
             sticky="ew",
             padx=4,
         )
-        ttk.Button(self.import_section, text="清空", command=self.clear_files).grid(
+        self._create_button(body, "清空", self.clear_files).grid(
             row=0,
             column=2,
             sticky="ew",
             padx=(4, 0),
         )
         ttk.Checkbutton(
-            self.import_section,
+            body,
             text="递归读取子文件夹",
             variable=self.recursive,
         ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
 
     def _build_export_section(self, parent, row: int) -> None:
         ttk = self.ttk
-        self.export_section = ttk.LabelFrame(parent, text="批量导出", padding=8)
-        self.export_section.grid(row=row, column=0, sticky="ew", pady=(0, 8))
-        self.export_section.columnconfigure(0, weight=1)
+        self.export_section, body = self._create_section(parent, "批量导出", row)
+        body.columnconfigure(0, weight=1)
 
-        ttk.Entry(self.export_section, textvariable=self.output_dir).grid(
+        ttk.Entry(body, textvariable=self.output_dir).grid(
             row=0,
             column=0,
             sticky="ew",
-            pady=(0, 6),
+            pady=(0, 7),
         )
-        ttk.Button(
-            self.export_section,
-            text="选择输出目录",
-            command=self.pick_output_dir,
-        ).grid(row=1, column=0, sticky="ew", pady=(0, 6))
-        ttk.Label(self.export_section, text="文件后缀").grid(
+        self._create_button(body, "选择输出目录", self.pick_output_dir).grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            pady=(0, 9),
+        )
+        self._create_label(body, "文件后缀", muted=True).grid(
             row=2,
             column=0,
             sticky="w",
         )
-        ttk.Entry(self.export_section, textvariable=self.suffix).grid(
+        ttk.Entry(body, textvariable=self.suffix).grid(
             row=3,
             column=0,
             sticky="ew",
-            pady=(0, 6),
+            pady=(4, 7),
         )
         ttk.Checkbutton(
-            self.export_section,
+            body,
             text="覆盖同名 PNG",
             variable=self.overwrite,
-        ).grid(row=4, column=0, sticky="w", pady=(0, 6))
-        ttk.Button(
-            self.export_section,
-            text="开始批量处理",
-            command=self.start_batch,
-            style="Accent.TButton",
+        ).grid(row=4, column=0, sticky="w", pady=(0, 8))
+        self._create_button(
+            body,
+            "开始批量处理",
+            self.start_batch,
+            variant="primary",
         ).grid(row=5, column=0, sticky="ew")
 
     def _build_settings_section(self, parent, row: int) -> None:
         ttk = self.ttk
-        self.settings_section = ttk.LabelFrame(parent, text="去黑参数", padding=8)
-        self.settings_section.grid(row=row, column=0, sticky="ew", pady=(0, 8))
-        self.settings_section.columnconfigure(1, weight=1)
+        self.settings_section, body = self._create_section(parent, "去黑参数", row)
+        body.columnconfigure(1, weight=1)
 
-        self._add_slider(self.settings_section, "黑场", self.black_point, 0, 240, 0)
-        self._add_slider(self.settings_section, "白场", self.white_point, 16, 255, 1)
+        self._add_slider(body, "黑场", self.black_point, 0, 240, 0)
+        self._add_slider(body, "白场", self.white_point, 16, 255, 1)
         self._add_slider(
-            self.settings_section,
+            body,
             "Alpha Gamma",
             self.gamma,
             0.25,
@@ -555,40 +738,40 @@ class UnmultApp:
             2,
         )
 
-        ttk.Label(self.settings_section, text="亮度算法").grid(
+        self._create_label(body, "亮度算法").grid(
             row=3,
             column=0,
             sticky="w",
-            pady=3,
+            pady=4,
         )
         mode_box = ttk.Combobox(
-            self.settings_section,
+            body,
             textvariable=self.mode,
             state="readonly",
             values=("max", "luma", "average"),
             width=12,
         )
-        mode_box.grid(row=3, column=1, sticky="ew", pady=3)
+        mode_box.grid(row=3, column=1, sticky="ew", pady=4)
         mode_box.bind("<<ComboboxSelected>>", lambda _event: self.schedule_preview_update())
 
-        ttk.Label(self.settings_section, text="预览底色").grid(
+        self._create_label(body, "预览底色").grid(
             row=4,
             column=0,
             sticky="w",
-            pady=3,
+            pady=4,
         )
         bg_box = ttk.Combobox(
-            self.settings_section,
+            body,
             textvariable=self.preview_bg,
             state="readonly",
             values=("checker", "black", "white"),
             width=12,
         )
-        bg_box.grid(row=4, column=1, sticky="ew", pady=3)
+        bg_box.grid(row=4, column=1, sticky="ew", pady=4)
         bg_box.bind("<<ComboboxSelected>>", lambda _event: self.schedule_preview_update())
 
         ttk.Checkbutton(
-            self.settings_section,
+            body,
             text="输出保持预乘 RGB",
             variable=self.premultiplied_output,
             command=self.schedule_preview_update,
@@ -598,49 +781,69 @@ class UnmultApp:
         tk = self.tk
         ttk = self.ttk
         colors = UI_COLORS
-        self.file_list_section = ttk.LabelFrame(parent, text="图片列表", padding=8)
-        self.file_list_section.grid(row=row, column=0, sticky="nsew")
+        self.file_list_section, body = self._create_section(
+            parent,
+            "图片列表",
+            row,
+            sticky="nsew",
+        )
+        self.file_list_section.rowconfigure(1, weight=1)
         self.file_list_section.columnconfigure(0, weight=1)
-        self.file_list_section.rowconfigure(0, weight=1)
+        body.rowconfigure(0, weight=1)
+        body.columnconfigure(0, weight=1)
 
         self.file_list = tk.Listbox(
-            self.file_list_section,
+            body,
             width=34,
             height=7,
-            bg=colors["panel_bg"],
+            bg=colors["surface"],
             fg=colors["text"],
             selectbackground=colors["selection"],
             selectforeground=colors["text"],
             activestyle="none",
             highlightthickness=1,
             highlightcolor=colors["accent"],
-            highlightbackground=colors["border"],
+            highlightbackground=colors["border_soft"],
             relief="flat",
             borderwidth=0,
         )
-        list_scrollbar = ttk.Scrollbar(self.file_list_section, orient="vertical")
+        list_scrollbar = ttk.Scrollbar(body, orient="vertical")
         self.file_list.configure(yscrollcommand=list_scrollbar.set)
         list_scrollbar.configure(command=self.file_list.yview)
         self.file_list.grid(row=0, column=0, sticky="nsew")
-        list_scrollbar.grid(row=0, column=1, sticky="ns")
+        list_scrollbar.grid(row=0, column=1, sticky="ns", padx=(6, 0))
         self.file_list.bind(
             "<<ListboxSelect>>",
             lambda _event: self.load_selected_preview(),
         )
 
     def _build_preview_area(self, parent) -> None:
-        ttk = self.ttk
-        main = ttk.Frame(parent, style="Preview.TFrame", padding=14)
+        tk = self.tk
+        colors = UI_COLORS
+        fonts = UI_FONTS
+        main = tk.Frame(
+            parent,
+            bg=colors["preview_bg"],
+            highlightthickness=1,
+            highlightbackground=colors["border"],
+            bd=0,
+            padx=14,
+            pady=14,
+        )
         main.grid(row=0, column=1, sticky="nsew")
         main.columnconfigure(0, weight=1)
         main.rowconfigure(0, weight=1)
         self.preview_frame = main
 
-        self.preview_label = ttk.Label(
+        self.preview_label = tk.Label(
             main,
             text=PREVIEW_EMPTY_TEXT,
             anchor="center",
-            style="Preview.TLabel",
+            bg=colors["preview_bg"],
+            fg=colors["muted"],
+            font=fonts["base"],
+            relief="flat",
+            bd=0,
         )
         self.preview_label.grid(row=0, column=0, sticky="nsew")
         self.preview_label.bind(
@@ -649,11 +852,18 @@ class UnmultApp:
         )
 
     def _build_status_bar(self, parent) -> None:
-        self.status_bar = self.ttk.Label(
+        self.status_bar = self.tk.Label(
             parent,
             textvariable=self.status,
             anchor="w",
-            style="Status.TLabel",
+            bg=UI_COLORS["status_bg"],
+            fg=UI_COLORS["muted"],
+            font=UI_FONTS["small"],
+            highlightthickness=1,
+            highlightbackground=UI_COLORS["border_soft"],
+            bd=0,
+            padx=12,
+            pady=7,
         )
         self.status_bar.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
 
@@ -668,17 +878,30 @@ class UnmultApp:
     ) -> None:
         ttk = self.ttk
         tk = self.tk
+        colors = UI_COLORS
         is_integer = variable.__class__.__name__ == "IntVar"
 
-        ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", pady=3)
-        slider = ttk.Scale(
+        self._create_label(parent, label).grid(row=row, column=0, sticky="w", pady=4)
+        slider = tk.Scale(
             parent,
             from_=low,
             to=high,
             variable=variable,
+            orient=tk.HORIZONTAL,
+            showvalue=False,
+            resolution=1 if is_integer else 0.01,
+            bg=colors["card_bg"],
+            activebackground=colors["accent"],
+            troughcolor="#dfe7f0",
+            highlightthickness=0,
+            bd=0,
+            relief="flat",
+            sliderrelief="flat",
+            width=9,
+            sliderlength=16,
             command=lambda _value: self.schedule_preview_update(),
         )
-        slider.grid(row=row, column=1, sticky="ew", pady=3)
+        slider.grid(row=row, column=1, sticky="ew", pady=4)
 
         value_text = tk.StringVar()
         value_entry = ttk.Entry(
@@ -687,7 +910,7 @@ class UnmultApp:
             textvariable=value_text,
             justify="right",
         )
-        value_entry.grid(row=row, column=2, sticky="e", padx=(6, 0))
+        value_entry.grid(row=row, column=2, sticky="e", padx=(8, 0), pady=4)
 
         def formatted_value() -> str:
             value = variable.get()

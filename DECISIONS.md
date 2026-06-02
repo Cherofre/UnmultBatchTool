@@ -31,3 +31,11 @@ Status: active
 Decision: Restyle the source UI with a professional light tool-panel look, without adding new workflow features or rebuilding the exe in this phase.
 
 Reason: The user chose appearance/layout first, pure Tkinter, and source-only delivery for this phase.
+
+### 2026-06-02: Use custom Canvas buttons for polish
+
+Status: active
+
+Decision: Use Canvas-drawn rounded buttons for the main source UI instead of standard `ttk.Button` widgets.
+
+Reason: The user feedback showed the first restyle still looked too close to old Windows controls; Canvas buttons give more control over flat backgrounds, borders, hover states, and the primary action style while staying in pure Tkinter.

@@ -1,8 +1,8 @@
 ## Now
 
 1. Let the user run the source UI with `python .\unmult_tool.py --gui` or `launch_unmult_tool.bat`.
-2. Collect visual feedback on spacing, labels, contrast, and workflow clarity.
-3. If approved, plan a separate packaging stage to rebuild `UnmultBatchTool.exe`.
+2. Collect visual feedback on the corrected card/button styling, especially whether the left sidebar now feels close enough to the generated visual direction.
+3. If the style is accepted, plan a separate packaging stage to rebuild `UnmultBatchTool.exe`.
 
 ## Handoff Notes
 
@@ -13,6 +13,7 @@ Do not redo:
 - Drag-and-drop support wiring.
 - Preview debouncing/downsampling fix.
 - Professional light UI style foundation and main layout restyle on branch `codex/ui-restyle`.
+- User-feedback polish replacing old `LabelFrame` groups and default buttons with flat card sections and Canvas rounded buttons.
 
 Verify next:
 - Run `python -m unittest tests.test_unmult_tool`.
