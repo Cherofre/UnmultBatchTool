@@ -1,0 +1,4 @@
+__pycache__/
+*.py[cod]
+smoke_input.png
+smoke_output/
