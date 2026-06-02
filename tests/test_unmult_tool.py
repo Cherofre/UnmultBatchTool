@@ -3,7 +3,13 @@ from pathlib import Path
 
 from PIL import Image
 
-from unmult_tool import UI_COLORS, UnmultApp, make_preview_source, parse_dropped_paths
+from unmult_tool import (
+    PREVIEW_EMPTY_TEXT,
+    UI_COLORS,
+    UnmultApp,
+    make_preview_source,
+    parse_dropped_paths,
+)
 
 
 class UnmultToolTests(unittest.TestCase):
@@ -44,6 +50,15 @@ class UnmultToolTests(unittest.TestCase):
 
             self.assertLess(export_row, settings_row)
             self.assertLess(settings_row, list_row)
+        finally:
+            app.root.destroy()
+
+    def test_clear_files_restores_preview_empty_state(self):
+        app = UnmultApp()
+        try:
+            app.preview_label.configure(text="预览：demo.png")
+            app.clear_files()
+            self.assertEqual(app.preview_label.cget("text"), PREVIEW_EMPTY_TEXT)
         finally:
             app.root.destroy()
 

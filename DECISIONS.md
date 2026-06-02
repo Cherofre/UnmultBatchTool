@@ -23,3 +23,11 @@ Status: active
 Decision: Keep the desktop UI in Tkinter during the next restyle unless the user chooses a larger rewrite.
 
 Reason: Existing source is a compact Tkinter app; staying in Tkinter keeps packaging and iteration simple.
+
+### 2026-06-02: Professional light UI restyle scope
+
+Status: active
+
+Decision: Restyle the source UI with a professional light tool-panel look, without adding new workflow features or rebuilding the exe in this phase.
+
+Reason: The user chose appearance/layout first, pure Tkinter, and source-only delivery for this phase.

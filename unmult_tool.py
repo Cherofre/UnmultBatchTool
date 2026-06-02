@@ -23,6 +23,7 @@ SUPPORTED_EXTENSIONS = {
 }
 
 PREVIEW_MAX_EDGE = 900
+PREVIEW_EMPTY_TEXT = "拖入图片或从左侧列表选择素材"
 
 UI_COLORS = {
     "app_bg": "#f3f5f7",
@@ -637,7 +638,7 @@ class UnmultApp:
 
         self.preview_label = ttk.Label(
             main,
-            text="拖入图片或从左侧列表选择素材",
+            text=PREVIEW_EMPTY_TEXT,
             anchor="center",
             style="Preview.TLabel",
         )
@@ -787,7 +788,8 @@ class UnmultApp:
         self.files.clear()
         self.preview_source = None
         self.file_list.delete(0, self.tk.END)
-        self.preview_label.configure(image="", text="")
+        self.preview_photo = None
+        self.preview_label.configure(image="", text=PREVIEW_EMPTY_TEXT)
         self.status.set("列表已清空。")
 
     def refresh_file_list(self) -> None:
@@ -832,7 +834,7 @@ class UnmultApp:
                 Image.Resampling.LANCZOS,
             )
             self.preview_photo = ImageTk.PhotoImage(preview)
-            self.preview_label.configure(image=self.preview_photo)
+            self.preview_label.configure(image=self.preview_photo, text="")
         except Exception as exc:
             self.status.set(f"预览失败：{exc}")
 
