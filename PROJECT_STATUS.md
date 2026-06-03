@@ -3,7 +3,7 @@
 Last Updated: 2026-06-03
 
 Project: UnmultBatchTool
-Phase: Preparing 1.0.0 source release
+Phase: 1.0.0 source release published
 
 Current state:
 - Reconstructed editable Python source from the original PyInstaller executable.
@@ -22,6 +22,7 @@ Current state:
 - Fixed 16-bit grayscale PNG handling: `I;16` images are scaled down to 8-bit before RGBA conversion so files like `G:\SU_Master\asset\client\gfx\texture\0mmf\111.png` do not preview/process as a white image.
 - Reduced file-list selection lag: list selection now schedules preview processing instead of running it inside the click callback, and default preview size is capped at 512px for lighter main-thread preview work.
 - Added source version `1.0.0` and a "检查更新" action in the About window, backed by GitHub Releases version checks.
+- Published public GitHub repository `Cherofre/UnmultBatchTool` and release `v1.0.0`.
 - Updated README and `.gitignore` to match the source UI state, mark the old exe as not ready for distribution, document supported input formats, and ignore common export/build artifacts.
 
 Verification evidence:
@@ -44,10 +45,11 @@ Verification evidence:
 - 16-bit PNG fix: `python -m unittest tests.test_unmult_tool` ran 23 tests and passed; `python -m py_compile unmult_tool.py` passed; real-file smoke on `111.png` showed preview extrema `(4, 255)` and processed alpha extrema `(4, 255)`.
 - File-list lag fix: `python -m unittest tests.test_unmult_tool` ran 25 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed preview max edge 512; real-file GUI selection smoke on `111.png` took about 0.17s and scheduled preview generation.
 - About update check: `python -m unittest tests.test_unmult_tool` ran 30 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed the About window shows version `1.0.0`, exposes the update button, and reports `已是最新版本` for tag `v1.0.0`.
+- Release verification: `gh release view v1.0.0 --repo Cherofre/UnmultBatchTool` returned non-draft, non-prerelease release URL `https://github.com/Cherofre/UnmultBatchTool/releases/tag/v1.0.0`; runtime `check_update_status()` returned `已是最新版本` for `v1.0.0`.
 
 Dirty state:
-- Work is on branch `codex/ui-restyle`.
-- Current task is pushing the source release to GitHub and creating the `1.0.0` release.
+- Work is now on branch `master`, tracking `origin/master`.
+- Release tag `v1.0.0` points at the source release commit.
 
 Known risks:
 - `UnmultBatchTool.exe` is the old binary and has not been rebuilt from the reconstructed source.

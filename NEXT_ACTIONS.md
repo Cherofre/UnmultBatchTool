@@ -1,8 +1,8 @@
 ## Now
 
-1. Let the user run the source UI with `python .\unmult_tool.py --gui` or `launch_unmult_tool.bat`.
-2. Ask the user to re-check file-list clicking and `G:\SU_Master\asset\client\gfx\texture\0mmf\111.png`.
-3. Collect visual feedback on the red-box layout, custom sliders, hold-to-compare preview button, output safety behavior, and batch completion messages after failed files.
+1. Let the user verify the GitHub release: `https://github.com/Cherofre/UnmultBatchTool/releases/tag/v1.0.0`.
+2. Let the user run the source UI with `python .\unmult_tool.py --gui` or `launch_unmult_tool.bat`.
+3. Ask the user to re-check file-list clicking, `G:\SU_Master\asset\client\gfx\texture\0mmf\111.png`, and the About-window "检查更新" button.
 4. If the style and behavior are accepted, plan a separate packaging stage to rebuild `UnmultBatchTool.exe`.
 
 ## Handoff Notes
@@ -24,6 +24,7 @@ Do not redo:
 - Processed-preview caching for compare restore, plus Enter-key compare and slider focus polish.
 - Subagent review fixes for numbered output fallback files and removed-list-selection preview clearing.
 - 16-bit grayscale PNG handling and lighter scheduled preview generation for file-list clicks.
+- About-window update check and public GitHub source release `v1.0.0`.
 - README/.gitignore cleanup for source-only delivery and generated artifacts.
 
 Verify next:
@@ -32,6 +33,7 @@ Verify next:
 - Run a GUI smoke check after UI changes.
 - Current final verification already passed with 21 unit tests, py_compile, GUI smoke, CLI smoke, and read-only subagent review.
 - Latest verification passed with 25 unit tests, py_compile, GUI smoke, and real-file smoke for `111.png`.
+- Release verification passed with `gh release view v1.0.0` and runtime `check_update_status()`.
 - DDS is intentionally deferred; do not add it unless the user asks to resume that work.
 - For packaging, first create a new plan; do not assume the current old exe is updated.
 
