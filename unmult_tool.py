@@ -200,7 +200,7 @@ def output_path_for(
         candidate_key = _path_key(candidate)
         conflicts_with_input = candidate_key in protected_keys
         conflicts_with_reserved = candidate_key in reserved_keys
-        conflicts_with_existing = candidate.exists() and not overwrite
+        conflicts_with_existing = candidate.exists() and (not overwrite or index > 1)
         if not (
             conflicts_with_input
             or conflicts_with_reserved
@@ -1319,7 +1319,10 @@ class UnmultApp:
             return
 
         selected = self.file_list.curselection()
-        index = selected[0] if selected else 0
+        if not selected:
+            self.preview_position.set(f"0 / {len(self.files)}")
+            return
+        index = selected[0]
         self.preview_position.set(f"{index + 1} / {len(self.files)}")
 
     def _select_file_index(self, index: int) -> None:
@@ -1423,13 +1426,17 @@ class UnmultApp:
         self.file_list.delete(0, self.tk.END)
         for path in self.files:
             self.file_list.insert(self.tk.END, str(path))
+        restored_selection = False
         if selected_path is not None:
             for index, path in enumerate(self.files):
                 if path == selected_path:
                     self.file_list.selection_set(index)
                     self.file_list.activate(index)
                     self.file_list.see(index)
+                    restored_selection = True
                     break
+        if selected_path is not None and not restored_selection:
+            self._clear_preview_display()
         self._update_preview_position()
 
     def selected_file(self) -> Path | None:

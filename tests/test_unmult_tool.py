@@ -278,6 +278,25 @@ class UnmultToolTests(unittest.TestCase):
             with Image.open(source) as image:
                 self.assertEqual(image.getpixel((0, 0)), (25, 0, 0, 255))
 
+    def test_overwrite_mode_does_not_replace_existing_numbered_fallback(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.png"
+            existing_fallback = root / "source_2.png"
+            Image.new("RGBA", (2, 2), (25, 0, 0, 255)).save(source)
+            Image.new("RGBA", (2, 2), (10, 20, 30, 255)).save(existing_fallback)
+
+            written = process_images(
+                [source],
+                root,
+                UnmultSettings(),
+                overwrite=True,
+            )
+
+            self.assertEqual(written[0], root / "source_3.png")
+            with Image.open(existing_fallback) as image:
+                self.assertEqual(image.getpixel((0, 0)), (10, 20, 30, 255))
+
     def test_load_selected_preview_clears_stale_preview_on_open_error(self):
         app = UnmultApp()
         try:
@@ -313,6 +332,29 @@ class UnmultToolTests(unittest.TestCase):
 
             self.assertEqual(app.file_list.curselection(), (1,))
             self.assertEqual(app.preview_position.get(), "2 / 3")
+        finally:
+            self.destroy_app(app)
+
+    def test_refresh_file_list_clears_preview_when_selected_file_is_removed(self):
+        app = UnmultApp()
+        try:
+            first = Path("first.png")
+            second = Path("second.png")
+            app.files = [first, second]
+            app.refresh_file_list()
+            app.file_list.selection_set(1)
+            app.file_list.activate(1)
+            app.preview_source = Image.new("RGBA", (4, 4), (50, 0, 0, 255))
+            app.preview_label.configure(text="预览：second.png")
+
+            app.files = [first]
+            app.refresh_file_list()
+
+            self.assertEqual(app.file_list.curselection(), ())
+            self.assertIsNone(app.preview_source)
+            self.assertIsNone(app.preview_photo)
+            self.assertEqual(app.preview_label.cget("text"), PREVIEW_EMPTY_TEXT)
+            self.assertEqual(app.preview_position.get(), "0 / 1")
         finally:
             self.destroy_app(app)
 
