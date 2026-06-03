@@ -114,6 +114,20 @@ class UnmultToolTests(unittest.TestCase):
         finally:
             self.destroy_app(app)
 
+    def test_slider_click_moves_keyboard_focus_to_slider(self):
+        app = UnmultApp()
+        try:
+            app.root.update()
+            slider = app.slider_canvases[0]
+            slider.focus_set = Mock()
+
+            slider.event_generate("<Button-1>", x=24, y=14)
+            app.root.update()
+
+            slider.focus_set.assert_called_once()
+        finally:
+            self.destroy_app(app)
+
     def test_preview_compare_button_shows_original_until_release(self):
         app = UnmultApp()
         try:
@@ -128,6 +142,46 @@ class UnmultToolTests(unittest.TestCase):
             original_pixel = app.preview_photo._PhotoImage__photo.get(0, 0)
 
             app.compare_button.event_generate("<ButtonRelease-1>", x=10, y=10)
+            app.root.update()
+            restored_pixel = app.preview_photo._PhotoImage__photo.get(0, 0)
+
+            self.assertNotEqual(processed_pixel, (50, 0, 0))
+            self.assertEqual(original_pixel, (50, 0, 0))
+            self.assertEqual(restored_pixel, processed_pixel)
+        finally:
+            self.destroy_app(app)
+
+    def test_preview_restore_reuses_cached_processed_image(self):
+        app = UnmultApp()
+        try:
+            app.preview_source = Image.new("RGBA", (8, 8), (50, 0, 0, 255))
+            processed = Image.new("RGBA", (8, 8), (255, 0, 0, 128))
+
+            with patch("unmult_tool.unmult_image", return_value=processed) as unmult:
+                app.update_preview()
+                app.show_original_preview()
+                app.restore_processed_preview()
+
+            self.assertEqual(unmult.call_count, 1)
+        finally:
+            self.destroy_app(app)
+
+    def test_compare_button_enter_key_is_momentary_like_mouse_hold(self):
+        app = UnmultApp()
+        try:
+            app.preview_source = Image.new("RGBA", (8, 8), (50, 0, 0, 255))
+            app.preview_bg.set("white")
+            app.root.update()
+            app.update_preview()
+            processed_pixel = app.preview_photo._PhotoImage__photo.get(0, 0)
+
+            app.compare_button.focus_force()
+            app.root.update()
+            app.compare_button.event_generate("<KeyPress-Return>")
+            app.root.update()
+            original_pixel = app.preview_photo._PhotoImage__photo.get(0, 0)
+
+            app.compare_button.event_generate("<KeyRelease-Return>")
             app.root.update()
             restored_pixel = app.preview_photo._PhotoImage__photo.get(0, 0)
 

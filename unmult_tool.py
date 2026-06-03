@@ -294,6 +294,10 @@ class UnmultApp:
         self.files: list[Path] = []
         self.preview_source: Image.Image | None = None
         self.preview_photo: ImageTk.PhotoImage | None = None
+        self.processed_preview_key: tuple[int, UnmultSettings] | None = None
+        self.processed_preview_image: Image.Image | None = None
+        self.composite_preview_key: tuple[int, UnmultSettings, str] | None = None
+        self.composite_preview_image: Image.Image | None = None
         self.preview_job: str | None = None
         self.worker_poll_job: str | None = None
         self.is_processing = False
@@ -782,11 +786,13 @@ class UnmultApp:
         button.bind("<ButtonRelease-1>", activate)
         button.bind("<FocusIn>", lambda _event: redraw())
         button.bind("<FocusOut>", lambda _event: redraw())
-        button.bind("<Return>", activate)
         if press_command is not None:
             button.bind("<KeyPress-space>", press)
             button.bind("<KeyRelease-space>", activate)
+            button.bind("<KeyPress-Return>", press)
+            button.bind("<KeyRelease-Return>", activate)
         else:
+            button.bind("<Return>", activate)
             button.bind("<space>", activate)
         redraw()
         return button
@@ -1268,9 +1274,18 @@ class UnmultApp:
             set_from_ratio(value_ratio() + delta)
             return "break"
 
+        def begin_slide(event) -> str:
+            slider.focus_set()
+            set_from_x(event.x)
+            return "break"
+
+        def drag_slide(event) -> str:
+            set_from_x(event.x)
+            return "break"
+
         slider.bind("<Configure>", lambda _event: draw_slider())
-        slider.bind("<Button-1>", lambda event: set_from_x(event.x))
-        slider.bind("<B1-Motion>", lambda event: set_from_x(event.x))
+        slider.bind("<Button-1>", begin_slide)
+        slider.bind("<B1-Motion>", drag_slide)
         slider.bind("<Left>", lambda _event: nudge(-0.02))
         slider.bind("<Right>", lambda _event: nudge(0.02))
         refresh_entry()
@@ -1431,6 +1446,7 @@ class UnmultApp:
         try:
             with Image.open(path) as image:
                 self.preview_source = make_preview_source(image)
+            self._clear_preview_cache()
             self.update_preview()
             self._update_preview_position()
             self.status.set(f"预览：{path.name}")
@@ -1446,7 +1462,39 @@ class UnmultApp:
             self.preview_job = None
         self.preview_source = None
         self.preview_photo = None
+        self._clear_preview_cache()
         self.preview_label.configure(image="", text=PREVIEW_EMPTY_TEXT)
+
+    def _clear_preview_cache(self) -> None:
+        self.processed_preview_key = None
+        self.processed_preview_image = None
+        self.composite_preview_key = None
+        self.composite_preview_image = None
+
+    def _processed_preview_for(self, settings: UnmultSettings) -> Image.Image:
+        if self.preview_source is None:
+            raise ValueError("No preview source loaded.")
+        key = (id(self.preview_source), settings)
+        if key != self.processed_preview_key or self.processed_preview_image is None:
+            self.processed_preview_image = unmult_image(self.preview_source, settings)
+            self.processed_preview_key = key
+            self.composite_preview_key = None
+            self.composite_preview_image = None
+        return self.processed_preview_image
+
+    def _composite_preview_for(
+        self,
+        processed: Image.Image,
+        settings: UnmultSettings,
+        background: str,
+    ) -> Image.Image:
+        if self.preview_source is None:
+            raise ValueError("No preview source loaded.")
+        key = (id(self.preview_source), settings, background)
+        if key != self.composite_preview_key or self.composite_preview_image is None:
+            self.composite_preview_image = composite_preview(processed, background)
+            self.composite_preview_key = key
+        return self.composite_preview_image
 
     def update_preview(self) -> None:
         if self.preview_source is None:
@@ -1456,8 +1504,13 @@ class UnmultApp:
             self.preview_job = None
 
         try:
-            processed = unmult_image(self.preview_source, self.settings())
-            preview = composite_preview(processed, self.preview_bg.get())
+            settings = self.settings()
+            processed = self._processed_preview_for(settings)
+            preview = self._composite_preview_for(
+                processed,
+                settings,
+                self.preview_bg.get(),
+            )
             self._display_preview_image(preview)
         except Exception as exc:
             self.status.set(f"预览失败：{exc}")
