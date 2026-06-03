@@ -224,6 +224,44 @@ class UnmultToolTests(unittest.TestCase):
             with Image.open(source) as image:
                 self.assertEqual(image.getpixel((0, 0)), (25, 0, 0, 255))
 
+    def test_load_selected_preview_clears_stale_preview_on_open_error(self):
+        app = UnmultApp()
+        try:
+            app.files = [Path("broken.png")]
+            app.preview_source = Image.new("RGBA", (4, 4), (50, 0, 0, 255))
+            app.preview_label.configure(text="预览：old.png")
+            app.messagebox.showerror = Mock()
+
+            with patch("unmult_tool.Image.open", side_effect=OSError("broken image")):
+                app.load_selected_preview()
+
+            self.assertIsNone(app.preview_source)
+            self.assertIsNone(app.preview_photo)
+            self.assertEqual(app.preview_label.cget("text"), PREVIEW_EMPTY_TEXT)
+            self.assertIn("预览失败", app.status.get())
+            app.messagebox.showerror.assert_called_once()
+        finally:
+            self.destroy_app(app)
+
+    def test_refresh_file_list_preserves_current_selection(self):
+        app = UnmultApp()
+        try:
+            first = Path("first.png")
+            second = Path("second.png")
+            third = Path("third.png")
+            app.files = [first, second]
+            app.refresh_file_list()
+            app.file_list.selection_set(1)
+            app.file_list.activate(1)
+
+            app.files.append(third)
+            app.refresh_file_list()
+
+            self.assertEqual(app.file_list.curselection(), (1,))
+            self.assertEqual(app.preview_position.get(), "2 / 3")
+        finally:
+            self.destroy_app(app)
+
     def test_clear_files_restores_preview_empty_state(self):
         app = UnmultApp()
         try:

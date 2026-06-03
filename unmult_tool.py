@@ -1394,17 +1394,27 @@ class UnmultApp:
 
     def clear_files(self) -> None:
         self.files.clear()
-        self.preview_source = None
+        self._clear_preview_display()
         self.file_list.delete(0, self.tk.END)
-        self.preview_photo = None
-        self.preview_label.configure(image="", text=PREVIEW_EMPTY_TEXT)
         self._update_preview_position()
         self.status.set("列表已清空。")
 
     def refresh_file_list(self) -> None:
+        selected_path = None
+        selected = self.file_list.curselection()
+        if selected:
+            selected_path = Path(self.file_list.get(selected[0]))
+
         self.file_list.delete(0, self.tk.END)
         for path in self.files:
             self.file_list.insert(self.tk.END, str(path))
+        if selected_path is not None:
+            for index, path in enumerate(self.files):
+                if path == selected_path:
+                    self.file_list.selection_set(index)
+                    self.file_list.activate(index)
+                    self.file_list.see(index)
+                    break
         self._update_preview_position()
 
     def selected_file(self) -> Path | None:
@@ -1425,7 +1435,18 @@ class UnmultApp:
             self._update_preview_position()
             self.status.set(f"预览：{path.name}")
         except OSError as exc:
+            self._clear_preview_display()
+            self._update_preview_position()
+            self.status.set(f"预览失败：{path.name}")
             self.messagebox.showerror("无法打开图片", f"{path}\n\n{exc}")
+
+    def _clear_preview_display(self) -> None:
+        if self.preview_job is not None:
+            self.root.after_cancel(self.preview_job)
+            self.preview_job = None
+        self.preview_source = None
+        self.preview_photo = None
+        self.preview_label.configure(image="", text=PREVIEW_EMPTY_TEXT)
 
     def update_preview(self) -> None:
         if self.preview_source is None:
