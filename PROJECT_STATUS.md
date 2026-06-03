@@ -3,7 +3,7 @@
 Last Updated: 2026-06-03
 
 Project: UnmultBatchTool
-Phase: Hold-to-compare preview interaction
+Phase: Batch safety and handoff cleanup
 
 Current state:
 - Reconstructed editable Python source from the original PyInstaller executable.
@@ -14,6 +14,8 @@ Current state:
 - Applied the user's marked reference layout: removed the large in-window title, added a top action toolbar, kept upload/list/settings on the left, moved preview background controls to the preview header, and moved export settings below the preview so the default window shows the full export workflow.
 - Applied user feedback that the adjustment sliders were too low-contrast: replaced the left settings `tk.Scale` controls with custom Canvas sliders using visible blue fill, clear gray tracks, and white handles with blue outlines.
 - Added a right-side preview "对比" button: pressing or holding it shows the original image, and releasing it restores the processed preview.
+- Added batch safety fixes: duplicate batch launches are ignored while processing, and individual failed images no longer stop the rest of the GUI batch.
+- Updated README and `.gitignore` to match the source UI state, mark the old exe as not ready for distribution, document supported input formats, and ignore common export/build artifacts.
 
 Verification evidence:
 - Stage 1 style foundation: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, and GUI smoke passed.
@@ -23,12 +25,17 @@ Verification evidence:
 - Red-box layout correction: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, GUI smoke, and default-window screenshot review passed.
 - Slider visibility polish: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, GUI smoke, and screenshot review passed.
 - Hold-to-compare interaction: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, GUI smoke, and screenshot review passed.
+- Batch duplicate-launch guard: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, and GUI smoke passed.
+- Batch per-file failure continuation: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, and GUI smoke passed.
+- Documentation and ignore cleanup: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, GUI smoke, and `git diff --check` passed.
 
 Dirty state:
 - Work is on branch `codex/ui-restyle`.
-- UI restyle has seven phase checkpoints on `codex/ui-restyle`, including the hold-to-compare preview interaction.
+- UI restyle and safety work has multiple phase checkpoints on `codex/ui-restyle`, including batch safety and documentation cleanup.
 - Next action is user visual review of the updated source UI.
 
 Known risks:
 - `UnmultBatchTool.exe` is the old binary and has not been rebuilt from the reconstructed source.
+- DDS support is intentionally deferred and is not in the current supported input list.
+- Preview processing can still be heavy for large images because unmult preview computation runs in the Tk main thread.
 - Full visual/manual review by the user is still needed because automated checks cannot judge final polish.

@@ -63,3 +63,19 @@ Status: active
 Decision: The preview "对比" control is a momentary hold interaction: press shows the original image and release restores the processed preview.
 
 Reason: The user asked for clicking or holding to view the original, with release cancelling the comparison.
+
+### 2026-06-03: Defer DDS support
+
+Status: active
+
+Decision: Keep DDS out of the supported input list for now.
+
+Reason: DDS support depends on the specific compression/container variant, so the user chose to postpone it and work on other safety issues first.
+
+### 2026-06-03: Keep source-only delivery until packaging stage
+
+Status: active
+
+Decision: Treat the current UI and behavior changes as source-only until a fresh exe is built.
+
+Reason: The existing `UnmultBatchTool.exe` is an old binary and does not contain the reconstructed source changes.
