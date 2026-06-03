@@ -150,6 +150,34 @@ class UnmultToolTests(unittest.TestCase):
         finally:
             self.destroy_app(app)
 
+    def test_start_batch_continues_after_failed_image(self):
+        class ImmediateThread:
+            def __init__(self, target, daemon):
+                self.target = target
+
+            def start(self):
+                self.target()
+
+        app = UnmultApp()
+        try:
+            app.files = [Path("bad.png"), Path("good.png")]
+            with patch("unmult_tool.threading.Thread", ImmediateThread), patch(
+                "unmult_tool.process_images",
+                side_effect=[OSError("bad image"), [Path("good_unmult.png")]],
+            ) as process:
+                app.start_batch()
+
+            messages = []
+            while not app.worker_queue.empty():
+                messages.append(app.worker_queue.get_nowait())
+
+            self.assertEqual(process.call_count, 2)
+            self.assertEqual(messages[-1][0], "done")
+            self.assertIn("成功 1", messages[-1][1])
+            self.assertIn("失败 1", messages[-1][1])
+        finally:
+            self.destroy_app(app)
+
     def test_clear_files_restores_preview_empty_state(self):
         app = UnmultApp()
         try:

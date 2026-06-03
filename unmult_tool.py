@@ -1456,21 +1456,30 @@ class UnmultApp:
         def worker() -> None:
             try:
                 written: list[Path] = []
+                failed: list[tuple[Path, str]] = []
                 for index, image_path in enumerate(files, 1):
-                    output = process_images(
-                        [image_path],
-                        output_dir,
-                        settings,
-                        suffix,
-                        overwrite,
-                    )
-                    written.extend(output)
+                    try:
+                        output = process_images(
+                            [image_path],
+                            output_dir,
+                            settings,
+                            suffix,
+                            overwrite,
+                        )
+                        written.extend(output)
+                    except Exception as exc:
+                        failed.append((image_path, str(exc)))
                     self.worker_queue.put(
                         ("progress", f"正在处理 {index} / {len(files)} ...")
                     )
-                self.worker_queue.put(
-                    ("done", f"完成：已输出 {len(written)} 个 PNG 到 {output_dir}")
-                )
+                if failed:
+                    message = (
+                        f"完成：成功 {len(written)}，失败 {len(failed)}，"
+                        f"输出到 {output_dir}"
+                    )
+                else:
+                    message = f"完成：已输出 {len(written)} 个 PNG 到 {output_dir}"
+                self.worker_queue.put(("done", message))
             except Exception as exc:
                 self.worker_queue.put(("error", str(exc)))
 
