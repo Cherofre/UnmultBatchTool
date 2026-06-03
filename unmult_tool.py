@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 import queue
 import threading
 from dataclasses import dataclass
@@ -171,25 +172,41 @@ def collect_images(paths: Sequence[Path], recursive: bool = False) -> list[Path]
     return sorted(dict.fromkeys(images))
 
 
+def _path_key(path: Path | str) -> str:
+    return os.path.normcase(str(Path(path).expanduser().resolve(strict=False)))
+
+
 def output_path_for(
     input_path: Path,
     output_dir: Path,
     suffix: str,
     overwrite: bool,
+    reserved_paths: set[str] | None = None,
+    protected_paths: Iterable[Path | str] | None = None,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    if overwrite:
-        return output_dir / f"{input_path.stem}.png"
+    reserved_keys = reserved_paths if reserved_paths is not None else set()
+    protected_keys = {_path_key(input_path)}
+    if protected_paths is not None:
+        protected_keys.update(_path_key(path) for path in protected_paths)
 
-    candidate = output_dir / f"{input_path.stem}{suffix}.png"
-    if not candidate.exists():
-        return candidate
-
-    index = 2
+    name_suffix = "" if overwrite else suffix
+    index = 1
     while True:
-        numbered = output_dir / f"{input_path.stem}{suffix}_{index}.png"
-        if not numbered.exists():
-            return numbered
+        if index == 1:
+            candidate = output_dir / f"{input_path.stem}{name_suffix}.png"
+        else:
+            candidate = output_dir / f"{input_path.stem}{name_suffix}_{index}.png"
+        candidate_key = _path_key(candidate)
+        conflicts_with_input = candidate_key in protected_keys
+        conflicts_with_reserved = candidate_key in reserved_keys
+        conflicts_with_existing = candidate.exists() and not overwrite
+        if not (
+            conflicts_with_input
+            or conflicts_with_reserved
+            or conflicts_with_existing
+        ):
+            return candidate
         index += 1
 
 
@@ -199,13 +216,30 @@ def process_images(
     settings: UnmultSettings,
     suffix: str = "_unmult",
     overwrite: bool = False,
+    reserved_paths: set[str] | None = None,
+    protected_paths: Iterable[Path | str] | None = None,
 ) -> list[Path]:
     written: list[Path] = []
+    image_paths = list(image_paths)
+    protected_keys = {_path_key(path) for path in image_paths}
+    if protected_paths is not None:
+        protected_keys.update(_path_key(path) for path in protected_paths)
+    if reserved_paths is None:
+        reserved_paths = set()
+
     for image_path in image_paths:
         with Image.open(image_path) as image:
             output = unmult_image(image, settings)
-        destination = output_path_for(image_path, output_dir, suffix, overwrite)
+        destination = output_path_for(
+            image_path,
+            output_dir,
+            suffix,
+            overwrite,
+            reserved_paths,
+            protected_keys,
+        )
         output.save(destination, "PNG")
+        reserved_paths.add(_path_key(destination))
         written.append(destination)
     return written
 
@@ -1457,6 +1491,7 @@ class UnmultApp:
             try:
                 written: list[Path] = []
                 failed: list[tuple[Path, str]] = []
+                reserved_paths: set[str] = set()
                 for index, image_path in enumerate(files, 1):
                     try:
                         output = process_images(
@@ -1465,6 +1500,8 @@ class UnmultApp:
                             settings,
                             suffix,
                             overwrite,
+                            reserved_paths,
+                            files,
                         )
                         written.extend(output)
                     except Exception as exc:

@@ -2,7 +2,7 @@
 
 1. Let the user run the source UI with `python .\unmult_tool.py --gui` or `launch_unmult_tool.bat`.
 2. Collect visual feedback on the red-box layout, custom sliders, hold-to-compare preview button, and batch completion messages after failed files.
-3. Consider the next safety pass: preview performance caching, output overwrite conflict detection, and stale preview cleanup on bad file selection.
+3. Continue the current safety pass: preview performance caching and stale preview cleanup on bad file selection.
 4. If the style and behavior are accepted, plan a separate packaging stage to rebuild `UnmultBatchTool.exe`.
 
 ## Handoff Notes
@@ -19,6 +19,7 @@ Do not redo:
 - Slider visibility polish replacing low-contrast system scales with custom Canvas sliders.
 - Hold-to-compare preview button that shows the original image while pressed and restores the processed preview on release.
 - Batch safety fixes for duplicate launch prevention and per-file failure continuation.
+- Output path safety preventing overwrite mode from replacing current batch inputs or same-stem batch outputs.
 - README/.gitignore cleanup for source-only delivery and generated artifacts.
 
 Verify next:

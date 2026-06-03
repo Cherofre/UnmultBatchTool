@@ -1,4 +1,5 @@
 import unittest
+from tempfile import TemporaryDirectory
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -7,9 +8,11 @@ from PIL import Image
 from unmult_tool import (
     PREVIEW_EMPTY_TEXT,
     UI_COLORS,
+    UnmultSettings,
     UnmultApp,
     make_preview_source,
     parse_dropped_paths,
+    process_images,
 )
 
 
@@ -177,6 +180,49 @@ class UnmultToolTests(unittest.TestCase):
             self.assertIn("失败 1", messages[-1][1])
         finally:
             self.destroy_app(app)
+
+    def test_overwrite_mode_keeps_same_stem_batch_outputs_unique(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_dir = root / "first"
+            second_dir = root / "second"
+            output_dir = root / "out"
+            first_dir.mkdir()
+            second_dir.mkdir()
+            output_dir.mkdir()
+            first = first_dir / "same.jpg"
+            second = second_dir / "same.jpg"
+            Image.new("RGB", (2, 2), (50, 0, 0)).save(first)
+            Image.new("RGB", (2, 2), (100, 0, 0)).save(second)
+
+            written = process_images(
+                [first, second],
+                output_dir,
+                UnmultSettings(),
+                overwrite=True,
+            )
+
+            self.assertEqual(len(written), 2)
+            self.assertEqual(len(set(written)), 2)
+            self.assertTrue(all(path.exists() for path in written))
+
+    def test_overwrite_mode_does_not_replace_input_png(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.png"
+            Image.new("RGBA", (2, 2), (25, 0, 0, 255)).save(source)
+
+            written = process_images(
+                [source],
+                root,
+                UnmultSettings(),
+                overwrite=True,
+            )
+
+            self.assertNotEqual(source.resolve(), written[0].resolve())
+            self.assertTrue(written[0].exists())
+            with Image.open(source) as image:
+                self.assertEqual(image.getpixel((0, 0)), (25, 0, 0, 255))
 
     def test_clear_files_restores_preview_empty_state(self):
         app = UnmultApp()

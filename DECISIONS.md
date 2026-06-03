@@ -72,6 +72,14 @@ Decision: Keep DDS out of the supported input list for now.
 
 Reason: DDS support depends on the specific compression/container variant, so the user chose to postpone it and work on other safety issues first.
 
+### 2026-06-03: Protect current batch inputs during overwrite export
+
+Status: active
+
+Decision: In overwrite mode, allow replacing old output PNG files but never write to a path that matches any current batch input; use numbered fallback names for same-stem collisions.
+
+Reason: The overwrite checkbox should not risk destroying source artwork or silently replacing another item from the same batch.
+
 ### 2026-06-03: Keep source-only delivery until packaging stage
 
 Status: active

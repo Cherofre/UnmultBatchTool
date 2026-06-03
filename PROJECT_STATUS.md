@@ -15,6 +15,7 @@ Current state:
 - Applied user feedback that the adjustment sliders were too low-contrast: replaced the left settings `tk.Scale` controls with custom Canvas sliders using visible blue fill, clear gray tracks, and white handles with blue outlines.
 - Added a right-side preview "对比" button: pressing or holding it shows the original image, and releasing it restores the processed preview.
 - Added batch safety fixes: duplicate batch launches are ignored while processing, and individual failed images no longer stop the rest of the GUI batch.
+- Added output path safety: overwrite mode can replace old output files, but it now avoids overwriting any current batch input and keeps same-stem batch outputs unique with numbered fallbacks.
 - Updated README and `.gitignore` to match the source UI state, mark the old exe as not ready for distribution, document supported input formats, and ignore common export/build artifacts.
 
 Verification evidence:
@@ -28,6 +29,7 @@ Verification evidence:
 - Batch duplicate-launch guard: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, and GUI smoke passed.
 - Batch per-file failure continuation: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, and GUI smoke passed.
 - Documentation and ignore cleanup: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, GUI smoke, and `git diff --check` passed.
+- Output path safety: `python -m unittest tests.test_unmult_tool` ran 14 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed `UnmultApp` initializes, drag/drop token is present, compare button exists, and `is_processing` starts false.
 
 Dirty state:
 - Work is on branch `codex/ui-restyle`.
