@@ -4,6 +4,7 @@ __pycache__/
 build/
 dist/
 *.spec
+UnmultBatchTool.exe
 smoke_input.png
 smoke_output/
 unmult_output/
