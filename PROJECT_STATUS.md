@@ -3,7 +3,7 @@
 Last Updated: 2026-06-03
 
 Project: UnmultBatchTool
-Phase: Batch safety and handoff cleanup
+Phase: Ready for source UI visual review
 
 Current state:
 - Reconstructed editable Python source from the original PyInstaller executable.
@@ -36,10 +36,12 @@ Verification evidence:
 - Preview state cleanup: `python -m unittest tests.test_unmult_tool` ran 16 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed empty preview text renders on initialization.
 - Preview cache and keyboard polish: `python -m unittest tests.test_unmult_tool` ran 19 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed `UnmultApp` initializes with drag/drop token, compare button, and 3 custom sliders.
 - Subagent review fixes: `python -m unittest tests.test_unmult_tool` ran 21 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed `UnmultApp` initializes with drag/drop token, compare button, and preview position `0 / 0`.
+- Final local verification: `python -m unittest tests.test_unmult_tool` ran 21 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed drag/drop token, compare button, 3 custom sliders, preview position `0 / 0`, and `is_processing` false; CLI smoke processed 1 generated PNG.
+- Final subagent review: read-only review found no Critical or Important blockers, and independently ran `python -B -m unittest -v tests.test_unmult_tool` with 21 tests passing plus Space compare and output fallback spot checks.
 
 Dirty state:
 - Work is on branch `codex/ui-restyle`.
-- UI restyle and safety work has multiple phase checkpoints on `codex/ui-restyle`, including batch safety and documentation cleanup.
+- Worktree is clean after staged phase commits through `a13c4b7 Address preview and output review findings`.
 - Next action is user visual review of the updated source UI.
 
 Known risks:

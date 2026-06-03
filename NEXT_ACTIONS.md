@@ -1,9 +1,8 @@
 ## Now
 
 1. Let the user run the source UI with `python .\unmult_tool.py --gui` or `launch_unmult_tool.bat`.
-2. Collect visual feedback on the red-box layout, custom sliders, hold-to-compare preview button, and batch completion messages after failed files.
-3. Let the user visually review the source UI and safety behavior.
-4. If the style and behavior are accepted, plan a separate packaging stage to rebuild `UnmultBatchTool.exe`.
+2. Collect visual feedback on the red-box layout, custom sliders, hold-to-compare preview button, output safety behavior, and batch completion messages after failed files.
+3. If the style and behavior are accepted, plan a separate packaging stage to rebuild `UnmultBatchTool.exe`.
 
 ## Handoff Notes
 
@@ -29,6 +28,7 @@ Verify next:
 - Run `python -m unittest tests.test_unmult_tool`.
 - Run `python -m py_compile unmult_tool.py`.
 - Run a GUI smoke check after UI changes.
+- Current final verification already passed with 21 unit tests, py_compile, GUI smoke, CLI smoke, and read-only subagent review.
 - DDS is intentionally deferred; do not add it unless the user asks to resume that work.
 - For packaging, first create a new plan; do not assume the current old exe is updated.
 
