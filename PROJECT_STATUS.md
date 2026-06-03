@@ -3,7 +3,7 @@
 Last Updated: 2026-06-03
 
 Project: UnmultBatchTool
-Phase: Fixing preview file-list lag and 16-bit PNG display
+Phase: Preparing 1.0.0 source release
 
 Current state:
 - Reconstructed editable Python source from the original PyInstaller executable.
@@ -21,6 +21,7 @@ Current state:
 - Closed subagent review findings: numbered fallback output paths now avoid existing files, and list refresh clears preview if the previously selected file was removed.
 - Fixed 16-bit grayscale PNG handling: `I;16` images are scaled down to 8-bit before RGBA conversion so files like `G:\SU_Master\asset\client\gfx\texture\0mmf\111.png` do not preview/process as a white image.
 - Reduced file-list selection lag: list selection now schedules preview processing instead of running it inside the click callback, and default preview size is capped at 512px for lighter main-thread preview work.
+- Added source version `1.0.0` and a "检查更新" action in the About window, backed by GitHub Releases version checks.
 - Updated README and `.gitignore` to match the source UI state, mark the old exe as not ready for distribution, document supported input formats, and ignore common export/build artifacts.
 
 Verification evidence:
@@ -42,10 +43,11 @@ Verification evidence:
 - Final subagent review: read-only review found no Critical or Important blockers, and independently ran `python -B -m unittest -v tests.test_unmult_tool` with 21 tests passing plus Space compare and output fallback spot checks.
 - 16-bit PNG fix: `python -m unittest tests.test_unmult_tool` ran 23 tests and passed; `python -m py_compile unmult_tool.py` passed; real-file smoke on `111.png` showed preview extrema `(4, 255)` and processed alpha extrema `(4, 255)`.
 - File-list lag fix: `python -m unittest tests.test_unmult_tool` ran 25 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed preview max edge 512; real-file GUI selection smoke on `111.png` took about 0.17s and scheduled preview generation.
+- About update check: `python -m unittest tests.test_unmult_tool` ran 30 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed the About window shows version `1.0.0`, exposes the update button, and reports `已是最新版本` for tag `v1.0.0`.
 
 Dirty state:
 - Work is on branch `codex/ui-restyle`.
-- Current user-reported `111.png` display issue and file-list click lag are fixed in source.
+- Current task is pushing the source release to GitHub and creating the `1.0.0` release.
 
 Known risks:
 - `UnmultBatchTool.exe` is the old binary and has not been rebuilt from the reconstructed source.

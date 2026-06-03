@@ -6,11 +6,14 @@ from unittest.mock import Mock, patch
 from PIL import Image
 
 from unmult_tool import (
+    APP_VERSION,
     PREVIEW_EMPTY_TEXT,
     PREVIEW_MAX_EDGE,
     UI_COLORS,
     UnmultSettings,
     UnmultApp,
+    check_update_status,
+    is_newer_version,
     make_preview_source,
     parse_dropped_paths,
     process_images,
@@ -32,6 +35,35 @@ class UnmultToolTests(unittest.TestCase):
         paths = parse_dropped_paths("{D:/素材/a b.png} D:/素材/c.png", splitlist)
 
         self.assertEqual(paths, [Path("D:/素材/a b.png"), Path("D:/素材/c.png")])
+
+    def test_app_version_is_release_version(self):
+        self.assertEqual(APP_VERSION, "1.0.0")
+
+    def test_is_newer_version_normalizes_release_tags(self):
+        self.assertTrue(is_newer_version("v1.0.1", "1.0.0"))
+        self.assertFalse(is_newer_version("v1.0.0", "1.0.0"))
+
+    def test_check_update_status_reports_available_release(self):
+        title, message = check_update_status(
+            "1.0.0",
+            lambda: {
+                "tag_name": "v1.0.1",
+                "html_url": "https://example.test/releases/v1.0.1",
+            },
+        )
+
+        self.assertEqual(title, "发现新版本")
+        self.assertIn("1.0.1", message)
+        self.assertIn("https://example.test/releases/v1.0.1", message)
+
+    def test_check_update_status_reports_current_release(self):
+        title, message = check_update_status(
+            "1.0.0",
+            lambda: {"tag_name": "v1.0.0"},
+        )
+
+        self.assertEqual(title, "已是最新版本")
+        self.assertIn("1.0.0", message)
 
     def test_make_preview_source_downsamples_large_images_without_mutating_original(self):
         image = Image.new("RGBA", (3000, 1200), (128, 64, 32, 255))
@@ -117,6 +149,20 @@ class UnmultToolTests(unittest.TestCase):
             self.assertFalse(hasattr(app, "header"))
             self.assertEqual(int(app.toolbar.grid_info()["row"]), 0)
         finally:
+            self.destroy_app(app)
+
+    def test_about_window_exposes_check_update_button(self):
+        app = UnmultApp()
+        try:
+            app.show_about()
+            app.root.update_idletasks()
+
+            self.assertTrue(hasattr(app, "about_update_button"))
+            self.assertTrue(hasattr(app, "about_version_label"))
+            self.assertIn(APP_VERSION, app.about_version_label.cget("text"))
+        finally:
+            if hasattr(app, "about_window") and app.about_window.winfo_exists():
+                app.about_window.destroy()
             self.destroy_app(app)
 
     def test_default_layout_keeps_export_controls_visible(self):

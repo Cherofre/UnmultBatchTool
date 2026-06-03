@@ -96,6 +96,14 @@ Decision: Cap the source UI preview image at 512px on the longest edge, and sche
 
 Reason: Large textures can still be processed at full resolution for export, but file-list navigation should remain responsive.
 
+### 2026-06-03: Use public GitHub Releases for update checks
+
+Status: active
+
+Decision: Publish the source release to `Cherofre/UnmultBatchTool` and point the About-window update check at GitHub Releases.
+
+Reason: A public releases endpoint lets the desktop tool check for updates without embedding credentials.
+
 ### 2026-06-03: Keep source-only delivery until packaging stage
 
 Status: active

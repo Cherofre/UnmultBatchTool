@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import os
 import queue
+import re
 import threading
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
@@ -12,6 +16,14 @@ from urllib.parse import unquote, urlparse
 
 from PIL import Image, ImageTk
 
+
+APP_VERSION = "1.0.0"
+PROJECT_OWNER = "Cherofre"
+PROJECT_REPO = "UnmultBatchTool"
+PROJECT_RELEASES_URL = f"https://github.com/{PROJECT_OWNER}/{PROJECT_REPO}/releases"
+LATEST_RELEASE_API_URL = (
+    f"https://api.github.com/repos/{PROJECT_OWNER}/{PROJECT_REPO}/releases/latest"
+)
 
 SUPPORTED_EXTENSIONS = {
     ".bmp",
@@ -61,6 +73,64 @@ UI_FONTS = {
     "section": ("Segoe UI", 10, "bold"),
     "button": ("Segoe UI", 10),
 }
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    cleaned = version.strip().lstrip("vV").split("-", 1)[0].split("+", 1)[0]
+    parts = []
+    for part in cleaned.split("."):
+        match = re.match(r"\d+", part)
+        parts.append(int(match.group(0)) if match else 0)
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts)
+
+
+def is_newer_version(latest_version: str, current_version: str = APP_VERSION) -> bool:
+    return _version_key(latest_version) > _version_key(current_version)
+
+
+def fetch_latest_release(
+    api_url: str = LATEST_RELEASE_API_URL,
+    timeout: int = 8,
+) -> dict[str, str]:
+    request = urllib.request.Request(
+        api_url,
+        headers={"User-Agent": f"{PROJECT_REPO}/{APP_VERSION}"},
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def check_update_status(
+    current_version: str = APP_VERSION,
+    fetcher: Callable[[], dict[str, str]] = fetch_latest_release,
+) -> tuple[str, str]:
+    try:
+        release = fetcher()
+    except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+        return (
+            "检查更新失败",
+            f"当前版本：{current_version}\n无法连接更新服务器：{exc}",
+        )
+
+    latest = str(release.get("tag_name") or "").strip()
+    if not latest:
+        return (
+            "检查更新失败",
+            f"当前版本：{current_version}\n远端 release 信息无效。",
+        )
+
+    release_url = str(release.get("html_url") or PROJECT_RELEASES_URL)
+    if is_newer_version(latest, current_version):
+        return (
+            "发现新版本",
+            f"当前版本：{current_version}\n最新版本：{latest}\n下载地址：{release_url}",
+        )
+    return (
+        "已是最新版本",
+        f"当前版本：{current_version}\n最新版本：{latest}\n{PROJECT_RELEASES_URL}",
+    )
 
 
 def _path_from_drop_item(item: str) -> Path:
@@ -307,6 +377,9 @@ class UnmultApp:
         self.composite_preview_image: Image.Image | None = None
         self.preview_job: str | None = None
         self.worker_poll_job: str | None = None
+        self.about_window = None
+        self.about_update_button = None
+        self.about_version_label = None
         self.is_processing = False
         self.slider_canvases: list[object] = []
         self.worker_queue: queue.Queue[tuple[str, str]] = queue.Queue()
@@ -1315,10 +1388,83 @@ class UnmultApp:
         )
 
     def show_about(self) -> None:
-        self.messagebox.showinfo(
-            "关于",
-            "Unmult 去黑批处理工具\n源码 UI 调整版",
+        if self.about_window is not None and self.about_window.winfo_exists():
+            self.about_window.lift()
+            return
+
+        tk = self.tk
+        colors = UI_COLORS
+        window = tk.Toplevel(self.root)
+        window.title("关于")
+        window.configure(bg=colors["card_bg"])
+        window.resizable(False, False)
+        window.transient(self.root)
+        window.grab_set()
+        self.about_window = window
+
+        body = tk.Frame(window, bg=colors["card_bg"], padx=18, pady=16)
+        body.grid(row=0, column=0, sticky="nsew")
+        body.columnconfigure(0, weight=1)
+
+        tk.Label(
+            body,
+            text="Unmult 去黑批处理工具",
+            bg=colors["card_bg"],
+            fg=colors["text"],
+            font=UI_FONTS["section"],
+        ).grid(row=0, column=0, sticky="w")
+        self.about_version_label = tk.Label(
+            body,
+            text=f"版本 {APP_VERSION}",
+            bg=colors["card_bg"],
+            fg=colors["muted"],
+            font=UI_FONTS["small"],
         )
+        self.about_version_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        tk.Label(
+            body,
+            text="源码 UI 调整版",
+            bg=colors["card_bg"],
+            fg=colors["muted"],
+            font=UI_FONTS["small"],
+        ).grid(row=2, column=0, sticky="w", pady=(4, 12))
+
+        actions = tk.Frame(body, bg=colors["card_bg"])
+        actions.grid(row=3, column=0, sticky="e")
+        self.about_update_button = self._create_button(
+            actions,
+            "检查更新",
+            self.check_for_updates,
+            width=104,
+        )
+        self.about_update_button.grid(row=0, column=0, padx=(0, 8))
+        self._create_button(actions, "关闭", window.destroy, width=76).grid(
+            row=0,
+            column=1,
+        )
+
+        def on_close() -> None:
+            self.about_window = None
+            window.destroy()
+
+        window.protocol("WM_DELETE_WINDOW", on_close)
+        self.root.update_idletasks()
+        x = self.root.winfo_rootx() + max(0, (self.root.winfo_width() - 360) // 2)
+        y = self.root.winfo_rooty() + max(0, (self.root.winfo_height() - 180) // 2)
+        window.geometry(f"+{x}+{y}")
+
+    def check_for_updates(self) -> None:
+        self.status.set("正在检查更新...")
+
+        def worker() -> None:
+            title, message = check_update_status()
+            self.root.after(0, lambda: self._show_update_result(title, message))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _show_update_result(self, title: str, message: str) -> None:
+        self.status.set(title)
+        self.messagebox.showinfo(title, message)
 
     def _update_preview_position(self) -> None:
         if not self.files:
