@@ -106,8 +106,16 @@ Reason: A public releases endpoint lets the desktop tool check for updates witho
 
 ### 2026-06-03: Keep source-only delivery until packaging stage
 
-Status: active
+Status: superseded
 
 Decision: Treat the current UI and behavior changes as source-only until a fresh exe is built.
 
 Reason: The existing `UnmultBatchTool.exe` is an old binary and does not contain the reconstructed source changes.
+
+### 2026-06-03: Ship executable as release asset, not tracked source
+
+Status: active
+
+Decision: Remove the old tracked `UnmultBatchTool.exe` from git, ignore root-level exe artifacts, and publish the freshly built Windows executable only as a GitHub Release asset.
+
+Reason: The repository should stay source-first, while users still get a direct Windows download from the release page.

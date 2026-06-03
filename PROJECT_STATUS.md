@@ -3,7 +3,7 @@
 Last Updated: 2026-06-03
 
 Project: UnmultBatchTool
-Phase: 1.0.0 source release published
+Phase: 1.0.0 executable release published
 
 Current state:
 - Reconstructed editable Python source from the original PyInstaller executable.
@@ -23,7 +23,9 @@ Current state:
 - Reduced file-list selection lag: list selection now schedules preview processing instead of running it inside the click callback, and default preview size is capped at 512px for lighter main-thread preview work.
 - Added source version `1.0.0` and a "检查更新" action in the About window, backed by GitHub Releases version checks.
 - Published public GitHub repository `Cherofre/UnmultBatchTool` and release `v1.0.0`.
-- Updated README and `.gitignore` to match the source UI state, mark the old exe as not ready for distribution, document supported input formats, and ignore common export/build artifacts.
+- Removed the old tracked `UnmultBatchTool.exe` from git and the remote branch, and ignored root-level exe artifacts to avoid re-committing binaries.
+- Packaged a fresh Windows `UnmultBatchTool.exe` with PyInstaller and uploaded it as the `v1.0.0` release asset.
+- Updated README and `.gitignore` to match the release state, document supported input formats, and ignore common export/build artifacts.
 
 Verification evidence:
 - Stage 1 style foundation: `python -m unittest tests.test_unmult_tool`, `python -m py_compile unmult_tool.py`, and GUI smoke passed.
@@ -46,13 +48,16 @@ Verification evidence:
 - File-list lag fix: `python -m unittest tests.test_unmult_tool` ran 25 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed preview max edge 512; real-file GUI selection smoke on `111.png` took about 0.17s and scheduled preview generation.
 - About update check: `python -m unittest tests.test_unmult_tool` ran 30 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed the About window shows version `1.0.0`, exposes the update button, and reports `已是最新版本` for tag `v1.0.0`.
 - Release verification: `gh release view v1.0.0 --repo Cherofre/UnmultBatchTool` returned non-draft, non-prerelease release URL `https://github.com/Cherofre/UnmultBatchTool/releases/tag/v1.0.0`; runtime `check_update_status()` returned `已是最新版本` for `v1.0.0`.
+- Old exe removal: `python -m unittest tests.test_unmult_tool` ran 30 tests and passed; `python -m py_compile unmult_tool.py` passed; commit `9446c78` deleted tracked `UnmultBatchTool.exe` and was pushed to `origin/master`.
+- PyInstaller package: `python -m PyInstaller --noconfirm --clean --onefile --windowed --name UnmultBatchTool --hidden-import tkinterdnd2 --collect-all tkinterdnd2 unmult_tool.py` produced `dist\UnmultBatchTool.exe` size 17,977,341 bytes.
+- Executable smoke: windowed exe CLI processing via `Start-Process -Wait` exited 0 and wrote PNG output; GUI startup smoke kept the process running after launch and then closed it.
+- Release asset verification: `gh release view v1.0.0 --repo Cherofre/UnmultBatchTool` shows asset `UnmultBatchTool.exe`, size 17,977,341 bytes, SHA-256 digest `d83f6fe46eae08858b30cfc596e6553fc4072d5621f3dc85aaee736d38d88021`.
 
 Dirty state:
 - Work is now on branch `master`, tracking `origin/master`.
-- Release tag `v1.0.0` points at the source release commit.
+- Release tag `v1.0.0` points at commit `9446c78`, after the old tracked exe was removed.
 
 Known risks:
-- `UnmultBatchTool.exe` is the old binary and has not been rebuilt from the reconstructed source.
 - DDS support is intentionally deferred and is not in the current supported input list.
 - Preview processing can still be heavy for large images because unmult preview computation runs in the Tk main thread.
 - Full visual/manual review by the user is still needed because automated checks cannot judge final polish.
