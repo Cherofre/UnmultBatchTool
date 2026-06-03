@@ -47,3 +47,11 @@ Status: active
 Decision: Use a toolbar-first layout without a large in-window title; keep upload, file list, and adjustment parameters on the left; place preview controls above the preview and export settings below it.
 
 Reason: The user clarified that the generated/reference UI placed key controls around the preview, and the prior left-column-only layout clipped lower controls in the default window.
+
+### 2026-06-03: Use custom Canvas sliders for visibility
+
+Status: active
+
+Decision: Use Canvas-drawn sliders for black point, white point, and Gamma instead of standard `tk.Scale`.
+
+Reason: On Windows the default `tk.Scale` slider handle was too low-contrast against the light panel, making the adjustment controls hard to read.

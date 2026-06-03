@@ -45,6 +45,9 @@ UI_COLORS = {
     "accent_pressed": "#194f84",
     "accent_soft": "#e8f2ff",
     "accent_text": "#ffffff",
+    "slider_track": "#d3dbe7",
+    "slider_fill": "#2c78c4",
+    "slider_handle": "#ffffff",
     "selection": "#d8eaff",
     "status_bg": "#ffffff",
     "success": "#2c7a57",
@@ -259,6 +262,7 @@ class UnmultApp:
         self.preview_photo: ImageTk.PhotoImage | None = None
         self.preview_job: str | None = None
         self.worker_poll_job: str | None = None
+        self.slider_canvases: list[object] = []
         self.worker_queue: queue.Queue[tuple[str, str]] = queue.Queue()
 
         self.black_point = tk.IntVar(value=0)
@@ -842,7 +846,9 @@ class UnmultApp:
     def _build_settings_section(self, parent, row: int) -> None:
         ttk = self.ttk
         self.settings_section, body = self._create_section(parent, "2. 调整参数", row)
+        body.columnconfigure(0, minsize=108, weight=0)
         body.columnconfigure(1, weight=1)
+        body.columnconfigure(2, minsize=70, weight=0)
 
         self._add_slider(body, "黑场", self.black_point, 0, 240, 0)
         self._add_slider(body, "白场", self.white_point, 16, 255, 1)
@@ -858,7 +864,7 @@ class UnmultApp:
         self._create_label(body, "亮度算法").grid(
             row=3,
             column=0,
-            sticky="w",
+            sticky="ew",
             pady=4,
         )
         mode_box = ttk.Combobox(
@@ -1051,26 +1057,17 @@ class UnmultApp:
         colors = UI_COLORS
         is_integer = variable.__class__.__name__ == "IntVar"
 
-        self._create_label(parent, label).grid(row=row, column=0, sticky="w", pady=4)
-        slider = tk.Scale(
+        self._create_label(parent, label).grid(row=row, column=0, sticky="ew", pady=4)
+        slider = tk.Canvas(
             parent,
-            from_=low,
-            to=high,
-            variable=variable,
-            orient=tk.HORIZONTAL,
-            showvalue=False,
-            resolution=1 if is_integer else 0.01,
+            height=28,
             bg=colors["card_bg"],
-            activebackground=colors["accent"],
-            troughcolor="#dfe7f0",
-            highlightthickness=0,
             bd=0,
-            relief="flat",
-            sliderrelief="flat",
-            width=9,
-            sliderlength=16,
-            command=lambda _value: self.schedule_preview_update(),
+            highlightthickness=0,
+            cursor="sb_h_double_arrow",
+            takefocus=True,
         )
+        self.slider_canvases.append(slider)
         slider.grid(row=row, column=1, sticky="ew", pady=4)
 
         value_text = tk.StringVar()
@@ -1092,6 +1089,7 @@ class UnmultApp:
             if value_entry.focus_get() == value_entry:
                 return
             value_text.set(formatted_value())
+            draw_slider()
 
         def commit_entry(_event=None) -> str:
             raw_value = value_text.get().strip()
@@ -1114,6 +1112,108 @@ class UnmultApp:
         variable.trace_add("write", refresh_entry)
         value_entry.bind("<Return>", commit_entry)
         value_entry.bind("<FocusOut>", commit_entry)
+
+        def value_ratio() -> float:
+            return _clamp((float(variable.get()) - low) / (high - low), 0, 1)
+
+        def rounded_rect(
+            x1: float,
+            y1: float,
+            x2: float,
+            y2: float,
+            radius: float,
+            **kwargs,
+        ) -> None:
+            points = [
+                x1 + radius,
+                y1,
+                x2 - radius,
+                y1,
+                x2,
+                y1,
+                x2,
+                y1 + radius,
+                x2,
+                y2 - radius,
+                x2,
+                y2,
+                x2 - radius,
+                y2,
+                x1 + radius,
+                y2,
+                x1,
+                y2,
+                x1,
+                y2 - radius,
+                x1,
+                y1 + radius,
+                x1,
+                y1,
+            ]
+            slider.create_polygon(points, smooth=True, splinesteps=12, **kwargs)
+
+        def draw_slider() -> None:
+            width = max(slider.winfo_width(), 120)
+            height = 28
+            pad_x = 10
+            track_y = height / 2
+            track_h = 6
+            left = pad_x
+            right = width - pad_x
+            handle_x = left + (right - left) * value_ratio()
+
+            slider.delete("all")
+            rounded_rect(
+                left,
+                track_y - track_h / 2,
+                right,
+                track_y + track_h / 2,
+                track_h / 2,
+                fill=colors["slider_track"],
+                outline="",
+            )
+            rounded_rect(
+                left,
+                track_y - track_h / 2,
+                max(left + track_h, handle_x),
+                track_y + track_h / 2,
+                track_h / 2,
+                fill=colors["slider_fill"],
+                outline="",
+            )
+            slider.create_oval(
+                handle_x - 8,
+                track_y - 8,
+                handle_x + 8,
+                track_y + 8,
+                fill=colors["slider_handle"],
+                outline=colors["slider_fill"],
+                width=2,
+            )
+
+        def set_from_ratio(ratio: float) -> None:
+            ratio = _clamp(ratio, 0, 1)
+            raw = low + (high - low) * ratio
+            if is_integer:
+                variable.set(int(round(raw)))
+            else:
+                variable.set(round(raw, 2))
+            self.schedule_preview_update()
+
+        def set_from_x(x: int) -> None:
+            width = max(slider.winfo_width(), 120)
+            pad_x = 10
+            set_from_ratio((x - pad_x) / (width - pad_x * 2))
+
+        def nudge(delta: float) -> str:
+            set_from_ratio(value_ratio() + delta)
+            return "break"
+
+        slider.bind("<Configure>", lambda _event: draw_slider())
+        slider.bind("<Button-1>", lambda event: set_from_x(event.x))
+        slider.bind("<B1-Motion>", lambda event: set_from_x(event.x))
+        slider.bind("<Left>", lambda _event: nudge(-0.02))
+        slider.bind("<Right>", lambda _event: nudge(0.02))
         refresh_entry()
 
     def reset_settings(self) -> None:

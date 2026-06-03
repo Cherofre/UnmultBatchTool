@@ -95,6 +95,21 @@ class UnmultToolTests(unittest.TestCase):
         finally:
             self.destroy_app(app)
 
+    def test_settings_sliders_use_visible_custom_canvas_tracks(self):
+        app = UnmultApp()
+        try:
+            app.root.update_idletasks()
+
+            self.assertEqual(len(app.slider_canvases), 3)
+            fills = {
+                app.slider_canvases[0].itemcget(item, "fill")
+                for item in app.slider_canvases[0].find_all()
+            }
+            self.assertIn(UI_COLORS["slider_track"], fills)
+            self.assertIn(UI_COLORS["slider_fill"], fills)
+        finally:
+            self.destroy_app(app)
+
     def test_clear_files_restores_preview_empty_state(self):
         app = UnmultApp()
         try:
