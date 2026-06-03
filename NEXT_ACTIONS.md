@@ -1,7 +1,7 @@
 ## Now
 
 1. Let the user run the source UI with `python .\unmult_tool.py --gui` or `launch_unmult_tool.bat`.
-2. Collect visual feedback on the red-box layout and the clearer custom sliders in the left adjustment panel.
+2. Collect visual feedback on the red-box layout, custom sliders, and the new hold-to-compare original preview button.
 3. If the style is accepted, plan a separate packaging stage to rebuild `UnmultBatchTool.exe`.
 
 ## Handoff Notes
@@ -16,6 +16,7 @@ Do not redo:
 - User-feedback polish replacing old `LabelFrame` groups and default buttons with flat card sections and Canvas rounded buttons.
 - Red-box layout correction removing the big title header and moving export/settings around the preview.
 - Slider visibility polish replacing low-contrast system scales with custom Canvas sliders.
+- Hold-to-compare preview button that shows the original image while pressed and restores the processed preview on release.
 
 Verify next:
 - Run `python -m unittest tests.test_unmult_tool`.

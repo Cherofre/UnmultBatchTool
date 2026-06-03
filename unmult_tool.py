@@ -639,6 +639,8 @@ class UnmultApp:
         *,
         variant: str = "secondary",
         width: int = 104,
+        press_command=None,
+        release_command=None,
     ):
         tk = self.tk
         colors = UI_COLORS
@@ -724,20 +726,33 @@ class UnmultApp:
             state["bg"] = bg
             redraw()
 
+        def press(_event=None) -> str:
+            apply_colors(palette["pressed"])
+            if press_command is not None:
+                press_command()
+            return "break"
+
         def activate(_event=None) -> str:
             apply_colors(palette["hover"])
-            command()
+            if release_command is not None:
+                release_command()
+            else:
+                command()
             return "break"
 
         button.bind("<Configure>", lambda _event: redraw())
         button.bind("<Enter>", lambda _event: apply_colors(palette["hover"]))
         button.bind("<Leave>", lambda _event: apply_colors(palette["bg"]))
-        button.bind("<ButtonPress-1>", lambda _event: apply_colors(palette["pressed"]))
+        button.bind("<ButtonPress-1>", press)
         button.bind("<ButtonRelease-1>", activate)
         button.bind("<FocusIn>", lambda _event: redraw())
         button.bind("<FocusOut>", lambda _event: redraw())
         button.bind("<Return>", activate)
-        button.bind("<space>", activate)
+        if press_command is not None:
+            button.bind("<KeyPress-space>", press)
+            button.bind("<KeyRelease-space>", activate)
+        else:
+            button.bind("<space>", activate)
         redraw()
         return button
 
@@ -1001,6 +1016,15 @@ class UnmultApp:
             font=fonts["small"],
             anchor="center",
         ).grid(row=0, column=2)
+        self.compare_button = self._create_button(
+            nav,
+            "对比",
+            self.restore_processed_preview,
+            width=90,
+            press_command=self.show_original_preview,
+            release_command=self.restore_processed_preview,
+        )
+        self.compare_button.grid(row=0, column=3, sticky="e", padx=(12, 0))
 
     def _add_preview_bg_option(self, parent, text: str, value: str, column: int) -> None:
         colors = UI_COLORS
@@ -1375,20 +1399,37 @@ class UnmultApp:
             self.root.after_cancel(self.preview_job)
             self.preview_job = None
 
-        label_width = max(320, self.preview_label.winfo_width())
-        label_height = max(260, self.preview_label.winfo_height())
-
         try:
             processed = unmult_image(self.preview_source, self.settings())
             preview = composite_preview(processed, self.preview_bg.get())
-            preview.thumbnail(
-                (label_width - 20, label_height - 20),
-                Image.Resampling.LANCZOS,
-            )
-            self.preview_photo = ImageTk.PhotoImage(preview)
-            self.preview_label.configure(image=self.preview_photo, text="")
+            self._display_preview_image(preview)
         except Exception as exc:
             self.status.set(f"预览失败：{exc}")
+
+    def _display_preview_image(self, image: Image.Image) -> None:
+        label_width = max(320, self.preview_label.winfo_width())
+        label_height = max(260, self.preview_label.winfo_height())
+        preview = image.copy()
+        preview.thumbnail(
+            (label_width - 20, label_height - 20),
+            Image.Resampling.LANCZOS,
+        )
+        self.preview_photo = ImageTk.PhotoImage(preview)
+        self.preview_label.configure(image=self.preview_photo, text="")
+
+    def show_original_preview(self) -> None:
+        if self.preview_source is None:
+            return
+        if self.preview_job is not None:
+            self.root.after_cancel(self.preview_job)
+            self.preview_job = None
+        preview = composite_preview(self.preview_source, self.preview_bg.get())
+        self._display_preview_image(preview)
+
+    def restore_processed_preview(self) -> None:
+        if self.preview_source is None:
+            return
+        self.update_preview()
 
     def pick_output_dir(self) -> None:
         selected = self.filedialog.askdirectory(title="选择输出目录")

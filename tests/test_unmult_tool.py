@@ -110,6 +110,29 @@ class UnmultToolTests(unittest.TestCase):
         finally:
             self.destroy_app(app)
 
+    def test_preview_compare_button_shows_original_until_release(self):
+        app = UnmultApp()
+        try:
+            app.preview_source = Image.new("RGBA", (8, 8), (50, 0, 0, 255))
+            app.preview_bg.set("white")
+            app.root.update()
+            app.update_preview()
+            processed_pixel = app.preview_photo._PhotoImage__photo.get(0, 0)
+
+            app.compare_button.event_generate("<ButtonPress-1>", x=10, y=10)
+            app.root.update()
+            original_pixel = app.preview_photo._PhotoImage__photo.get(0, 0)
+
+            app.compare_button.event_generate("<ButtonRelease-1>", x=10, y=10)
+            app.root.update()
+            restored_pixel = app.preview_photo._PhotoImage__photo.get(0, 0)
+
+            self.assertNotEqual(processed_pixel, (50, 0, 0))
+            self.assertEqual(original_pixel, (50, 0, 0))
+            self.assertEqual(restored_pixel, processed_pixel)
+        finally:
+            self.destroy_app(app)
+
     def test_clear_files_restores_preview_empty_state(self):
         app = UnmultApp()
         try:

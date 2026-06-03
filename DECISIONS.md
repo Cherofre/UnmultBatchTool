@@ -55,3 +55,11 @@ Status: active
 Decision: Use Canvas-drawn sliders for black point, white point, and Gamma instead of standard `tk.Scale`.
 
 Reason: On Windows the default `tk.Scale` slider handle was too low-contrast against the light panel, making the adjustment controls hard to read.
+
+### 2026-06-03: Original preview compare is momentary
+
+Status: active
+
+Decision: The preview "对比" control is a momentary hold interaction: press shows the original image and release restores the processed preview.
+
+Reason: The user asked for clicking or holding to view the original, with release cancelling the comparison.
