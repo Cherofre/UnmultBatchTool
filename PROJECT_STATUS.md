@@ -3,7 +3,7 @@
 Last Updated: 2026-06-03
 
 Project: UnmultBatchTool
-Phase: Ready for source UI visual review
+Phase: Fixing preview file-list lag and 16-bit PNG display
 
 Current state:
 - Reconstructed editable Python source from the original PyInstaller executable.
@@ -19,6 +19,7 @@ Current state:
 - Tightened preview state handling: failed image preview loads now clear stale preview content, and file-list refresh preserves the current selection when that file remains in the list.
 - Added processed-preview caching and keyboard polish: restoring from compare no longer recomputes the same preview, Enter now behaves like a momentary compare key, and clicking a custom slider focuses it for arrow-key nudging.
 - Closed subagent review findings: numbered fallback output paths now avoid existing files, and list refresh clears preview if the previously selected file was removed.
+- Fixed 16-bit grayscale PNG handling: `I;16` images are scaled down to 8-bit before RGBA conversion so files like `G:\SU_Master\asset\client\gfx\texture\0mmf\111.png` do not preview/process as a white image.
 - Updated README and `.gitignore` to match the source UI state, mark the old exe as not ready for distribution, document supported input formats, and ignore common export/build artifacts.
 
 Verification evidence:
@@ -38,11 +39,11 @@ Verification evidence:
 - Subagent review fixes: `python -m unittest tests.test_unmult_tool` ran 21 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed `UnmultApp` initializes with drag/drop token, compare button, and preview position `0 / 0`.
 - Final local verification: `python -m unittest tests.test_unmult_tool` ran 21 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed drag/drop token, compare button, 3 custom sliders, preview position `0 / 0`, and `is_processing` false; CLI smoke processed 1 generated PNG.
 - Final subagent review: read-only review found no Critical or Important blockers, and independently ran `python -B -m unittest -v tests.test_unmult_tool` with 21 tests passing plus Space compare and output fallback spot checks.
+- 16-bit PNG fix: `python -m unittest tests.test_unmult_tool` ran 23 tests and passed; `python -m py_compile unmult_tool.py` passed; real-file smoke on `111.png` showed preview extrema `(4, 255)` and processed alpha extrema `(4, 255)`.
 
 Dirty state:
 - Work is on branch `codex/ui-restyle`.
-- Worktree is clean after staged phase commits through `a13c4b7 Address preview and output review findings`.
-- Next action is user visual review of the updated source UI.
+- Current task is fixing the user-reported file-list click lag after the 16-bit PNG display fix.
 
 Known risks:
 - `UnmultBatchTool.exe` is the old binary and has not been rebuilt from the reconstructed source.

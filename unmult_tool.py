@@ -82,11 +82,18 @@ def parse_dropped_paths(
     return [_path_from_drop_item(item) for item in splitlist(data) if item]
 
 
+def _to_rgba_8bit(image: Image.Image) -> Image.Image:
+    if image.mode.startswith("I;16"):
+        grayscale = image.point(lambda value: value / 256).convert("L")
+        return grayscale.convert("RGBA")
+    return image.convert("RGBA")
+
+
 def make_preview_source(
     image: Image.Image,
     max_edge: int = PREVIEW_MAX_EDGE,
 ) -> Image.Image:
-    preview = image.convert("RGBA")
+    preview = _to_rgba_8bit(image)
     if max(preview.size) > max_edge:
         preview = preview.copy()
         preview.thumbnail((max_edge, max_edge), Image.Resampling.LANCZOS)
@@ -116,7 +123,7 @@ def _luminance(r: int, g: int, b: int, mode: str) -> float:
 
 def unmult_image(image: Image.Image, settings: UnmultSettings) -> Image.Image:
     """Remove a black matte by estimating alpha and un-premultiplying RGB."""
-    source = image.convert("RGBA")
+    source = _to_rgba_8bit(image)
     pixels = source.load()
     width, height = source.size
     output = Image.new("RGBA", source.size)

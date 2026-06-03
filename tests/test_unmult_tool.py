@@ -13,6 +13,7 @@ from unmult_tool import (
     make_preview_source,
     parse_dropped_paths,
     process_images,
+    unmult_image,
 )
 
 
@@ -39,6 +40,27 @@ class UnmultToolTests(unittest.TestCase):
         self.assertEqual(image.size, (3000, 1200))
         self.assertEqual(max(preview.size), 900)
         self.assertEqual(preview.mode, "RGBA")
+
+    def test_make_preview_source_scales_16_bit_grayscale_png_to_8_bit(self):
+        image = Image.new("I;16", (3, 1))
+        image.putpixel((0, 0), 0)
+        image.putpixel((1, 0), 32768)
+        image.putpixel((2, 0), 65535)
+
+        preview = make_preview_source(image, max_edge=900)
+
+        self.assertEqual(preview.mode, "RGBA")
+        self.assertEqual(preview.getpixel((0, 0)), (0, 0, 0, 255))
+        self.assertEqual(preview.getpixel((1, 0)), (128, 128, 128, 255))
+        self.assertEqual(preview.getpixel((2, 0)), (255, 255, 255, 255))
+
+    def test_unmult_image_scales_16_bit_grayscale_before_alpha_estimate(self):
+        image = Image.new("I;16", (1, 1))
+        image.putpixel((0, 0), 32768)
+
+        output = unmult_image(image, UnmultSettings())
+
+        self.assertEqual(output.getpixel((0, 0)), (255, 255, 255, 128))
 
     def test_app_uses_central_light_palette_for_root_background(self):
         app = UnmultApp()

@@ -80,6 +80,14 @@ Decision: In overwrite mode, allow replacing old output PNG files but never writ
 
 Reason: The overwrite checkbox should not risk destroying source artwork or silently replacing another item from the same batch.
 
+### 2026-06-03: Scale 16-bit grayscale PNGs by bit depth
+
+Status: active
+
+Decision: Convert `I;16` grayscale PNGs to 8-bit RGBA by dividing channel values by 256 before previewing or unmult processing.
+
+Reason: Direct Pillow conversion clips most 16-bit values to white; bit-depth scaling preserves predictable texture values without introducing auto-contrast.
+
 ### 2026-06-03: Keep source-only delivery until packaging stage
 
 Status: active
