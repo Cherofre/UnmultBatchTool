@@ -20,6 +20,7 @@ Current state:
 - Added processed-preview caching and keyboard polish: restoring from compare no longer recomputes the same preview, Enter now behaves like a momentary compare key, and clicking a custom slider focuses it for arrow-key nudging.
 - Closed subagent review findings: numbered fallback output paths now avoid existing files, and list refresh clears preview if the previously selected file was removed.
 - Fixed 16-bit grayscale PNG handling: `I;16` images are scaled down to 8-bit before RGBA conversion so files like `G:\SU_Master\asset\client\gfx\texture\0mmf\111.png` do not preview/process as a white image.
+- Reduced file-list selection lag: list selection now schedules preview processing instead of running it inside the click callback, and default preview size is capped at 512px for lighter main-thread preview work.
 - Updated README and `.gitignore` to match the source UI state, mark the old exe as not ready for distribution, document supported input formats, and ignore common export/build artifacts.
 
 Verification evidence:
@@ -40,10 +41,11 @@ Verification evidence:
 - Final local verification: `python -m unittest tests.test_unmult_tool` ran 21 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed drag/drop token, compare button, 3 custom sliders, preview position `0 / 0`, and `is_processing` false; CLI smoke processed 1 generated PNG.
 - Final subagent review: read-only review found no Critical or Important blockers, and independently ran `python -B -m unittest -v tests.test_unmult_tool` with 21 tests passing plus Space compare and output fallback spot checks.
 - 16-bit PNG fix: `python -m unittest tests.test_unmult_tool` ran 23 tests and passed; `python -m py_compile unmult_tool.py` passed; real-file smoke on `111.png` showed preview extrema `(4, 255)` and processed alpha extrema `(4, 255)`.
+- File-list lag fix: `python -m unittest tests.test_unmult_tool` ran 25 tests and passed; `python -m py_compile unmult_tool.py` passed; GUI smoke confirmed preview max edge 512; real-file GUI selection smoke on `111.png` took about 0.17s and scheduled preview generation.
 
 Dirty state:
 - Work is on branch `codex/ui-restyle`.
-- Current task is fixing the user-reported file-list click lag after the 16-bit PNG display fix.
+- Current user-reported `111.png` display issue and file-list click lag are fixed in source.
 
 Known risks:
 - `UnmultBatchTool.exe` is the old binary and has not been rebuilt from the reconstructed source.

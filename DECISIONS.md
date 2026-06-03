@@ -88,6 +88,14 @@ Decision: Convert `I;16` grayscale PNGs to 8-bit RGBA by dividing channel values
 
 Reason: Direct Pillow conversion clips most 16-bit values to white; bit-depth scaling preserves predictable texture values without introducing auto-contrast.
 
+### 2026-06-03: Keep UI preview lightweight
+
+Status: active
+
+Decision: Cap the source UI preview image at 512px on the longest edge, and schedule list-selection preview processing instead of running it synchronously in the selection callback.
+
+Reason: Large textures can still be processed at full resolution for export, but file-list navigation should remain responsive.
+
 ### 2026-06-03: Keep source-only delivery until packaging stage
 
 Status: active

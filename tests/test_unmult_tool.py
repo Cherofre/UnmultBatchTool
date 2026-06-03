@@ -7,6 +7,7 @@ from PIL import Image
 
 from unmult_tool import (
     PREVIEW_EMPTY_TEXT,
+    PREVIEW_MAX_EDGE,
     UI_COLORS,
     UnmultSettings,
     UnmultApp,
@@ -40,6 +41,14 @@ class UnmultToolTests(unittest.TestCase):
         self.assertEqual(image.size, (3000, 1200))
         self.assertEqual(max(preview.size), 900)
         self.assertEqual(preview.mode, "RGBA")
+
+    def test_make_preview_source_default_keeps_click_preview_lightweight(self):
+        image = Image.new("RGBA", (3000, 1200), (128, 64, 32, 255))
+
+        preview = make_preview_source(image)
+
+        self.assertLessEqual(max(preview.size), PREVIEW_MAX_EDGE)
+        self.assertEqual(PREVIEW_MAX_EDGE, 512)
 
     def test_make_preview_source_scales_16_bit_grayscale_png_to_8_bit(self):
         image = Image.new("I;16", (3, 1))
@@ -337,6 +346,24 @@ class UnmultToolTests(unittest.TestCase):
             app.messagebox.showerror.assert_called_once()
         finally:
             self.destroy_app(app)
+
+    def test_load_selected_preview_schedules_processing_instead_of_blocking_click(self):
+        with TemporaryDirectory() as tmp:
+            image_path = Path(tmp) / "demo.png"
+            Image.new("RGBA", (4, 4), (50, 0, 0, 255)).save(image_path)
+
+            app = UnmultApp()
+            try:
+                app.files = [image_path]
+                app.update_preview = Mock()
+                app.schedule_preview_update = Mock()
+
+                app.load_selected_preview()
+
+                app.update_preview.assert_not_called()
+                app.schedule_preview_update.assert_called_once()
+            finally:
+                self.destroy_app(app)
 
     def test_refresh_file_list_preserves_current_selection(self):
         app = UnmultApp()

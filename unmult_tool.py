@@ -23,7 +23,7 @@ SUPPORTED_EXTENSIONS = {
     ".webp",
 }
 
-PREVIEW_MAX_EDGE = 900
+PREVIEW_MAX_EDGE = 512
 PREVIEW_EMPTY_TEXT = "拖入图片或从左侧列表选择素材"
 
 UI_COLORS = {
@@ -1461,7 +1461,9 @@ class UnmultApp:
             with Image.open(path) as image:
                 self.preview_source = make_preview_source(image)
             self._clear_preview_cache()
-            self.update_preview()
+            self.preview_photo = None
+            self.preview_label.configure(image="", text=f"正在生成预览：{path.name}")
+            self.schedule_preview_update(delay=80)
             self._update_preview_position()
             self.status.set(f"预览：{path.name}")
         except OSError as exc:
