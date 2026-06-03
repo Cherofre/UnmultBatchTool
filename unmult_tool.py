@@ -262,6 +262,7 @@ class UnmultApp:
         self.preview_photo: ImageTk.PhotoImage | None = None
         self.preview_job: str | None = None
         self.worker_poll_job: str | None = None
+        self.is_processing = False
         self.slider_canvases: list[object] = []
         self.worker_queue: queue.Queue[tuple[str, str]] = queue.Queue()
 
@@ -1440,12 +1441,16 @@ class UnmultApp:
         if not self.files:
             self.messagebox.showwarning("没有图片", "请先添加图片或文件夹。")
             return
+        if self.is_processing:
+            self.status.set("批处理正在进行中，请稍候。")
+            return
 
         output_dir = Path(self.output_dir.get()).expanduser()
         settings = self.settings()
         suffix = self.suffix.get() or "_unmult"
         overwrite = self.overwrite.get()
         files = list(self.files)
+        self.is_processing = True
         self.status.set(f"正在处理 0 / {len(files)} ...")
 
         def worker() -> None:
@@ -1477,8 +1482,10 @@ class UnmultApp:
                 kind, message = self.worker_queue.get_nowait()
                 self.status.set(message)
                 if kind == "done":
+                    self.is_processing = False
                     self.messagebox.showinfo("批处理完成", message)
                 elif kind == "error":
+                    self.is_processing = False
                     self.messagebox.showerror("批处理失败", message)
         except queue.Empty:
             pass

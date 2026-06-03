@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from PIL import Image
 
@@ -130,6 +131,22 @@ class UnmultToolTests(unittest.TestCase):
             self.assertNotEqual(processed_pixel, (50, 0, 0))
             self.assertEqual(original_pixel, (50, 0, 0))
             self.assertEqual(restored_pixel, processed_pixel)
+        finally:
+            self.destroy_app(app)
+
+    def test_start_batch_ignores_duplicate_launch_while_processing(self):
+        app = UnmultApp()
+        try:
+            app.files = [Path("demo.png")]
+            with patch("unmult_tool.threading.Thread") as thread_cls:
+                thread = Mock()
+                thread_cls.return_value = thread
+
+                app.start_batch()
+                app.start_batch()
+
+            self.assertEqual(thread_cls.call_count, 1)
+            self.assertEqual(thread.start.call_count, 1)
         finally:
             self.destroy_app(app)
 
